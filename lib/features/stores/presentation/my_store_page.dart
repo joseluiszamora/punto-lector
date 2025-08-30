@@ -312,15 +312,10 @@ class MyStorePage extends StatelessWidget {
                                 final it = items[i];
                                 final b = it.book;
                                 return ListTile(
-                                  leading:
-                                      b.coverUrl != null
-                                          ? Image.network(
-                                            b.coverUrl!,
-                                            width: 48,
-                                            height: 48,
-                                            fit: BoxFit.cover,
-                                          )
-                                          : const Icon(Icons.menu_book),
+                                  leading: _CoverImage(
+                                    url: b.coverUrl,
+                                    size: 48,
+                                  ),
                                   title: Text(b.title),
                                   subtitle: Text(
                                     '${b.author} • ${it.price.toStringAsFixed(2)} ${it.currency} • stock: ${it.stock}',
@@ -497,15 +492,7 @@ class _AddListingSheetState extends State<_AddListingSheet> {
                     itemBuilder: (_, i) {
                       final b = books[i];
                       return ListTile(
-                        leading:
-                            b.coverUrl != null
-                                ? Image.network(
-                                  b.coverUrl!,
-                                  width: 40,
-                                  height: 40,
-                                  fit: BoxFit.cover,
-                                )
-                                : const Icon(Icons.menu_book),
+                        leading: _CoverImage(url: b.coverUrl, size: 40),
                         title: Text(b.title),
                         subtitle: Text(b.author),
                         onTap: () => _askPriceAndAdd(b.id),
@@ -519,6 +506,52 @@ class _AddListingSheetState extends State<_AddListingSheet> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _CoverImage extends StatelessWidget {
+  final String? url;
+  final double size;
+  const _CoverImage({required this.url, this.size = 48});
+
+  Future<String?> _resolveUrl(String? input) async {
+    if (input == null || input.isEmpty) return null;
+    const marker = '/storage/v1/object/public/book_covers/';
+    final idx = input.indexOf(marker);
+    if (idx == -1) return input; // No es URL pública de Supabase
+    final objectPath = input.substring(idx + marker.length);
+    try {
+      final signed = await SupabaseInit.client.storage
+          .from('book_covers')
+          .createSignedUrl(objectPath, 60 * 60 * 24 * 365);
+      return signed;
+    } catch (_) {
+      return input; // fallback
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String?>(
+      future: _resolveUrl(url),
+      builder: (_, snap) {
+        final u = snap.data ?? url;
+        if (u == null || u.isEmpty) {
+          return Icon(Icons.menu_book, size: size);
+        }
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: Image.network(
+            u,
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+            errorBuilder:
+                (_, __, ___) => Icon(Icons.broken_image_outlined, size: size),
+          ),
+        );
+      },
     );
   }
 }

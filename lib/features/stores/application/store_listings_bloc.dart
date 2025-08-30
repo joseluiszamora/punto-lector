@@ -14,6 +14,8 @@ class StoreListingsBloc extends Bloc<StoreListingsEvent, StoreListingsState> {
     on<StoreListingsRequested>(_onLoad);
     on<StoreListingAddRequested>(_onAdd);
     on<StoreListingRemoveRequested>(_onRemove);
+    // Nuevo handler
+    on<StoreListingUpdateRequested>(_onUpdate);
   }
 
   Future<void> _onLoad(
@@ -66,6 +68,30 @@ class StoreListingsBloc extends Bloc<StoreListingsEvent, StoreListingsState> {
           current.where((e) => e.id != event.id).toList(),
         ),
       );
+    } catch (e) {
+      emit(StoreListingsState.error(e.toString()));
+    }
+  }
+
+  Future<void> _onUpdate(
+    StoreListingUpdateRequested event,
+    Emitter<StoreListingsState> emit,
+  ) async {
+    try {
+      final updated = await _repo.update(
+        event.id,
+        price: event.price,
+        currency: event.currency,
+        stock: event.stock,
+        active: event.active,
+      );
+      final current =
+          state is StoreListingsLoaded
+              ? (state as StoreListingsLoaded).items
+              : <StoreListing>[];
+      final next =
+          current.map((e) => e.id == updated.id ? updated : e).toList();
+      emit(StoreListingsState.loaded(next));
     } catch (e) {
       emit(StoreListingsState.error(e.toString()));
     }

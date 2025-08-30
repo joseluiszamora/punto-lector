@@ -11,6 +11,14 @@ abstract class IListingsRepository {
     int stock = 0,
   });
   Future<void> remove(String id);
+  // Nuevo: actualizar listing
+  Future<StoreListing> update(
+    String id, {
+    double? price,
+    String? currency,
+    int? stock,
+    bool? active,
+  });
 }
 
 class ListingsRepository implements IListingsRepository {
@@ -62,5 +70,30 @@ class ListingsRepository implements IListingsRepository {
   Future<void> remove(String id) async {
     // soft delete
     await _client.from('listings').update({'active': false}).eq('id', id);
+  }
+
+  @override
+  Future<StoreListing> update(
+    String id, {
+    double? price,
+    String? currency,
+    int? stock,
+    bool? active,
+  }) async {
+    final patch = <String, dynamic>{};
+    if (price != null) patch['price'] = price;
+    if (currency != null) patch['currency'] = currency;
+    if (stock != null) patch['stock'] = stock;
+    if (active != null) patch['active'] = active;
+    final res =
+        await _client
+            .from('listings')
+            .update(patch)
+            .eq('id', id)
+            .select(
+              'id, store_id, book_id, price, currency, stock, active, book:books(*)',
+            )
+            .single();
+    return StoreListing.fromMap(Map<String, dynamic>.from(res as Map));
   }
 }

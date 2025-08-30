@@ -31,3 +31,21 @@ class StoreListingRemoveRequested extends StoreListingsEvent {
   @override
   List<Object?> get props => [id];
 }
+
+// Nuevo: actualizar un listing
+class StoreListingUpdateRequested extends StoreListingsEvent {
+  final String id;
+  final double? price;
+  final String? currency;
+  final int? stock;
+  final bool? active;
+  const StoreListingUpdateRequested({
+    required this.id,
+    this.price,
+    this.currency,
+    this.stock,
+    this.active,
+  });
+  @override
+  List<Object?> get props => [id, price, currency, stock, active];
+}

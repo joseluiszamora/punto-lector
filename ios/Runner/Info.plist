@@ -58,5 +58,12 @@
 			</array>
 		</dict>
 	</array>
+	<!-- Permisos de fototeca/cámara para image_picker -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Necesitamos acceder a tus fotos para adjuntar la portada del libro.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Necesitamos permiso para guardar la portada seleccionada.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Necesitamos acceso a la cámara para tomar una foto de la portada.</string>
 </dict>
 </plist>
