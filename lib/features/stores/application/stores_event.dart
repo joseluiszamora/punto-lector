@@ -16,3 +16,12 @@ class StoreCreateRequested extends StoresEvent {
   @override
   List<Object?> get props => [store];
 }
+
+// Nuevo evento para actualizar una tienda existente
+class StoreUpdateRequested extends StoresEvent {
+  final String id;
+  final Map<String, dynamic> patch;
+  const StoreUpdateRequested(this.id, this.patch);
+  @override
+  List<Object?> get props => [id, patch];
+}

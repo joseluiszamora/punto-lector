@@ -13,6 +13,7 @@ class StoresBloc extends Bloc<StoresEvent, StoresState> {
     : super(const StoresState.initial()) {
     on<StoresRequested>(_onLoad);
     on<StoreCreateRequested>(_onCreate);
+    on<StoreUpdateRequested>(_onUpdate);
   }
 
   Future<void> _onLoad(StoresRequested event, Emitter<StoresState> emit) async {
@@ -34,6 +35,22 @@ class StoresBloc extends Bloc<StoresEvent, StoresState> {
       final current =
           state is StoresLoaded ? (state as StoresLoaded).stores : <Store>[];
       emit(StoresState.loaded([created, ...current]));
+    } catch (e) {
+      emit(StoresState.error(e.toString()));
+    }
+  }
+
+  Future<void> _onUpdate(
+    StoreUpdateRequested event,
+    Emitter<StoresState> emit,
+  ) async {
+    try {
+      final updated = await _repo.update(event.id, event.patch);
+      final current =
+          state is StoresLoaded ? (state as StoresLoaded).stores : <Store>[];
+      final next =
+          current.map((s) => s.id == updated.id ? updated : s).toList();
+      emit(StoresState.loaded(next));
     } catch (e) {
       emit(StoresState.error(e.toString()));
     }

@@ -8,6 +8,7 @@ import '../profile/presentation/profile_page.dart';
 import '../../core/supabase/supabase_client_provider.dart';
 import '../../data/repositories/books_repository.dart';
 import '../books/application/books_bloc.dart';
+import '../stores/presentation/my_store_page.dart';
 
 class RootNavPage extends StatelessWidget {
   const RootNavPage({super.key});
@@ -22,6 +23,8 @@ class RootNavPage extends StatelessWidget {
       ),
       // Tiendas (mapa)
       const StoresMapPage(),
+      // Mi tienda (administración)
+      const MyStorePage(),
       // Favoritos
       const FavoritesPage(),
       // Perfil
@@ -36,6 +39,10 @@ class RootNavPage extends StatelessWidget {
       BottomNavigationBarItem(
         icon: Icon(Icons.store_mall_directory_outlined),
         label: 'Tiendas',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.storefront_outlined),
+        label: 'Mi tienda',
       ),
       BottomNavigationBarItem(
         icon: Icon(Icons.favorite_outline),

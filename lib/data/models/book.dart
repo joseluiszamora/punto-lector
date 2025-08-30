@@ -26,4 +26,13 @@ class Book {
             ? DateTime.tryParse(map['published_at'].toString())
             : null,
   );
+
+  // Nuevo: mapa para inserción en Supabase
+  Map<String, dynamic> toInsert() => {
+    'title': title,
+    'author': author,
+    'cover_url': coverUrl,
+    'summary': summary,
+    'published_at': publishedAt?.toIso8601String(),
+  }..removeWhere((k, v) => v == null);
 }

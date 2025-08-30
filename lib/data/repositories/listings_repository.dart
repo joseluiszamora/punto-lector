@@ -1,0 +1,66 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/store_listing.dart';
+
+abstract class IListingsRepository {
+  Future<List<StoreListing>> listByStore(String storeId);
+  Future<StoreListing> add({
+    required String storeId,
+    required String bookId,
+    required double price,
+    String currency = 'BOB',
+    int stock = 0,
+  });
+  Future<void> remove(String id);
+}
+
+class ListingsRepository implements IListingsRepository {
+  final SupabaseClient _client;
+  ListingsRepository(this._client);
+
+  @override
+  Future<List<StoreListing>> listByStore(String storeId) async {
+    final res = await _client
+        .from('listings')
+        .select(
+          'id, store_id, book_id, price, currency, stock, active, book:books(*)',
+        )
+        .eq('store_id', storeId)
+        .eq('active', true);
+    final List raw = (res as List);
+    return raw
+        .map((e) => StoreListing.fromMap(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  @override
+  Future<StoreListing> add({
+    required String storeId,
+    required String bookId,
+    required double price,
+    String currency = 'BOB',
+    int stock = 0,
+  }) async {
+    final res =
+        await _client
+            .from('listings')
+            .insert({
+              'store_id': storeId,
+              'book_id': bookId,
+              'price': price,
+              'currency': currency,
+              'stock': stock,
+              'active': true,
+            })
+            .select(
+              'id, store_id, book_id, price, currency, stock, active, book:books(*)',
+            )
+            .single();
+    return StoreListing.fromMap(Map<String, dynamic>.from(res as Map));
+  }
+
+  @override
+  Future<void> remove(String id) async {
+    // soft delete
+    await _client.from('listings').update({'active': false}).eq('id', id);
+  }
+}
