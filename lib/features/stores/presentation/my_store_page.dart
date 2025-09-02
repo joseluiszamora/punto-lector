@@ -232,7 +232,7 @@ class MyStorePage extends StatelessWidget {
                                   ),
                                   title: Text(b.title),
                                   subtitle: Text(
-                                    '${b.author} • ${it.price.toStringAsFixed(2)} ${it.currency} • stock: ${it.stock}',
+                                    '${b.authorsLabel} • ${it.price.toStringAsFixed(2)} ${it.currency} • stock: ${it.stock}',
                                   ),
                                   trailing: IconButton(
                                     icon: const Icon(Icons.delete_outline),
@@ -271,12 +271,10 @@ class _AddListingSheet extends StatefulWidget {
 
 class _AddListingSheetState extends State<_AddListingSheet> {
   final _titleCtrl = TextEditingController();
-  final _authorCtrl = TextEditingController();
 
   @override
   void dispose() {
     _titleCtrl.dispose();
-    _authorCtrl.dispose();
     super.dispose();
   }
 
@@ -367,18 +365,11 @@ class _AddListingSheetState extends State<_AddListingSheet> {
               controller: _titleCtrl,
               decoration: const InputDecoration(labelText: 'Título'),
             ),
-            TextField(
-              controller: _authorCtrl,
-              decoration: const InputDecoration(labelText: 'Autor'),
-            ),
             const SizedBox(height: 8),
             ElevatedButton(
               onPressed: () {
                 context.read<BooksBloc>().add(
-                  BooksSearchRequested(
-                    title: _titleCtrl.text,
-                    author: _authorCtrl.text,
-                  ),
+                  BooksSearchRequested(title: _titleCtrl.text),
                 );
               },
               child: const Text('Buscar'),
@@ -408,7 +399,7 @@ class _AddListingSheetState extends State<_AddListingSheet> {
                       return ListTile(
                         leading: _CoverImage(url: b.coverUrl, size: 40),
                         title: Text(b.title),
-                        subtitle: Text(b.author),
+                        subtitle: Text(b.authorsLabel),
                         onTap: () => _askPriceAndAdd(b.id),
                       );
                     },

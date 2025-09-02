@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../data/models/book.dart';
+import '../../../data/models/author.dart';
+import '../../../data/models/category.dart';
 import '../../../data/repositories/books_repository.dart';
+import '../../../data/repositories/catalog_repository.dart';
 import '../../../core/supabase/supabase_client_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
@@ -20,19 +23,20 @@ class NewBookPage extends StatefulWidget {
 class _NewBookPageState extends State<NewBookPage> {
   final _form = GlobalKey<FormState>();
   final _title = TextEditingController();
-  final _author = TextEditingController();
   final _summary = TextEditingController();
   DateTime? _publishedAt;
   bool _saving = false;
-  // Estado de subida de imagen
+  // Portada
   bool _uploading = false;
   String? _uploadError;
   String? _previewUrl;
+  // Relacionales
+  final List<Author> _selectedAuthors = [];
+  final List<Category> _selectedCategories = [];
 
   @override
   void dispose() {
     _title.dispose();
-    _author.dispose();
     _summary.dispose();
     super.dispose();
   }
@@ -46,6 +50,42 @@ class _NewBookPageState extends State<NewBookPage> {
       lastDate: DateTime(now.year + 1),
     );
     if (picked != null) setState(() => _publishedAt = picked);
+  }
+
+  Future<void> _pickAuthors() async {
+    final repo = CatalogRepository(SupabaseInit.client);
+    final result = await _openMultiPicker<Author>(
+      context: context,
+      title: 'Seleccionar autores',
+      loader: (q) => repo.listAuthors(query: q),
+      itemLabel: (a) => a.name,
+      initiallySelected: _selectedAuthors.map((a) => a.id).toSet(),
+    );
+    if (result != null) {
+      setState(() {
+        _selectedAuthors
+          ..clear()
+          ..addAll(result.items);
+      });
+    }
+  }
+
+  Future<void> _pickCategories() async {
+    final repo = CatalogRepository(SupabaseInit.client);
+    final result = await _openMultiPicker<Category>(
+      context: context,
+      title: 'Seleccionar categorías',
+      loader: (q) => repo.listCategories(query: q),
+      itemLabel: (c) => c.name,
+      initiallySelected: _selectedCategories.map((c) => c.id).toSet(),
+    );
+    if (result != null) {
+      setState(() {
+        _selectedCategories
+          ..clear()
+          ..addAll(result.items);
+      });
+    }
   }
 
   String _rand(int len) {
@@ -164,7 +204,8 @@ class _NewBookPageState extends State<NewBookPage> {
       final temp = Book(
         id: 'new',
         title: _title.text.trim(),
-        author: _author.text.trim(),
+        authors: List.of(_selectedAuthors),
+        categories: List.of(_selectedCategories),
         coverUrl: _previewUrl,
         summary: _summary.text.trim().isEmpty ? null : _summary.text.trim(),
         publishedAt: _publishedAt,
@@ -200,13 +241,47 @@ class _NewBookPageState extends State<NewBookPage> {
                   validator:
                       (v) => v == null || v.trim().isEmpty ? 'Requerido' : null,
                 ),
-                TextFormField(
-                  controller: _author,
-                  decoration: const InputDecoration(labelText: 'Autor'),
-                  validator:
-                      (v) => v == null || v.trim().isEmpty ? 'Requerido' : null,
+                // Autores
+                Wrap(
+                  spacing: 8,
+                  runSpacing: -8,
+                  children:
+                      _selectedAuthors.isEmpty
+                          ? [const Chip(label: Text('Sin autor disponible'))]
+                          : _selectedAuthors
+                              .map((a) => Chip(label: Text(a.name)))
+                              .toList(),
                 ),
-                // Botón de subida de portada (sin campo URL)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    onPressed: _pickAuthors,
+                    icon: const Icon(Icons.person_search_outlined),
+                    label: const Text('Seleccionar autores'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Categorías
+                Wrap(
+                  spacing: 8,
+                  runSpacing: -8,
+                  children:
+                      _selectedCategories.isEmpty
+                          ? []
+                          : _selectedCategories
+                              .map((c) => Chip(label: Text(c.name)))
+                              .toList(),
+                ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    onPressed: _pickCategories,
+                    icon: const Icon(Icons.category_outlined),
+                    label: const Text('Seleccionar categorías'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Portada
                 Align(
                   alignment: Alignment.centerLeft,
                   child: OutlinedButton.icon(
@@ -227,10 +302,36 @@ class _NewBookPageState extends State<NewBookPage> {
                     padding: const EdgeInsets.only(top: 8.0),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        _previewUrl!,
-                        height: 160,
-                        fit: BoxFit.cover,
+                      child: Builder(
+                        builder: (context) {
+                          final dpr = MediaQuery.of(context).devicePixelRatio;
+                          return Image.network(
+                            _previewUrl!,
+                            height: 160,
+                            fit: BoxFit.cover,
+                            cacheHeight: (160 * dpr).round(),
+                            filterQuality: FilterQuality.low,
+                            loadingBuilder: (ctx, child, loading) {
+                              if (loading == null) return child;
+                              return SizedBox(
+                                height: 160,
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              );
+                            },
+                            errorBuilder:
+                                (ctx, error, stack) => Container(
+                                  height: 160,
+                                  color: Colors.grey.shade200,
+                                  child: const Center(
+                                    child: Icon(Icons.broken_image_outlined),
+                                  ),
+                                ),
+                          );
+                        },
                       ),
                     ),
                   ),
@@ -280,6 +381,166 @@ class _NewBookPageState extends State<NewBookPage> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MultiPickResult<T> {
+  final List<T> items;
+  _MultiPickResult(this.items);
+}
+
+Future<_MultiPickResult<T>?> _openMultiPicker<T>({
+  required BuildContext context,
+  required String title,
+  required Future<List<T>> Function(String? query) loader,
+  required String Function(T) itemLabel,
+  required Set<String> initiallySelected,
+}) async {
+  return showModalBottomSheet<_MultiPickResult<T>>(
+    context: context,
+    isScrollControlled: true,
+    builder: (ctx) {
+      return _MultiPickerSheet<T>(
+        title: title,
+        loader: loader,
+        itemLabel: itemLabel,
+        initiallySelected: initiallySelected,
+      );
+    },
+  );
+}
+
+class _MultiPickerSheet<T> extends StatefulWidget {
+  final String title;
+  final Future<List<T>> Function(String? query) loader;
+  final String Function(T) itemLabel;
+  final Set<String> initiallySelected;
+  const _MultiPickerSheet({
+    required this.title,
+    required this.loader,
+    required this.itemLabel,
+    required this.initiallySelected,
+  });
+
+  @override
+  State<_MultiPickerSheet<T>> createState() => _MultiPickerSheetState<T>();
+}
+
+class _MultiPickerSheetState<T> extends State<_MultiPickerSheet<T>> {
+  final _queryCtrl = TextEditingController();
+  List<T> _items = const [];
+  final Set<String> _selected = {};
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected.addAll(widget.initiallySelected);
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    final items = await widget.loader(
+      _queryCtrl.text.isEmpty ? null : _queryCtrl.text,
+    );
+    setState(() {
+      _items = items;
+      _loading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 16,
+          right: 16,
+          top: 16,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(widget.title, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _queryCtrl,
+              decoration: InputDecoration(
+                hintText: 'Buscar...',
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: _load,
+                ),
+              ),
+              onSubmitted: (_) => _load(),
+            ),
+            const SizedBox(height: 8),
+            if (_loading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            else
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _items.length,
+                  itemBuilder: (_, i) {
+                    final item = _items[i];
+                    final id = (item as dynamic).id as String;
+                    final label = widget.itemLabel(item);
+                    final checked = _selected.contains(id);
+                    return CheckboxListTile(
+                      value: checked,
+                      onChanged: (v) {
+                        setState(() {
+                          if (v == true) {
+                            _selected.add(id);
+                          } else {
+                            _selected.remove(id);
+                          }
+                        });
+                      },
+                      title: Text(label),
+                    );
+                  },
+                ),
+              ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar'),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: () {
+                    final selectedItems =
+                        _items
+                            .where(
+                              (e) => _selected.contains(
+                                (e as dynamic).id as String,
+                              ),
+                            )
+                            .toList();
+                    Navigator.pop(context, _MultiPickResult<T>(selectedItems));
+                  },
+                  child: const Text('Aceptar'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
         ),
       ),
     );

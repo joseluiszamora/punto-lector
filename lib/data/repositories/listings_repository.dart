@@ -25,12 +25,15 @@ class ListingsRepository implements IListingsRepository {
   final SupabaseClient _client;
   ListingsRepository(this._client);
 
+  String _bookSelect() =>
+      'book:books(*, books_authors(authors(*)), book_categories(categories(*)))';
+
   @override
   Future<List<StoreListing>> listByStore(String storeId) async {
     final res = await _client
         .from('listings')
         .select(
-          'id, store_id, book_id, price, currency, stock, active, book:books(*)',
+          'id, store_id, book_id, price, currency, stock, active, ${_bookSelect()}',
         )
         .eq('store_id', storeId)
         .eq('active', true);
@@ -60,7 +63,7 @@ class ListingsRepository implements IListingsRepository {
               'active': true,
             })
             .select(
-              'id, store_id, book_id, price, currency, stock, active, book:books(*)',
+              'id, store_id, book_id, price, currency, stock, active, ${_bookSelect()}',
             )
             .single();
     return StoreListing.fromMap(Map<String, dynamic>.from(res as Map));
@@ -91,7 +94,7 @@ class ListingsRepository implements IListingsRepository {
             .update(patch)
             .eq('id', id)
             .select(
-              'id, store_id, book_id, price, currency, stock, active, book:books(*)',
+              'id, store_id, book_id, price, currency, stock, active, ${_bookSelect()}',
             )
             .single();
     return StoreListing.fromMap(Map<String, dynamic>.from(res as Map));

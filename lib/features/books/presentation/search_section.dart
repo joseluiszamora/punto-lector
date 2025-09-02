@@ -79,15 +79,27 @@ class _ResultsList extends StatelessWidget {
         return ListTile(
           leading:
               b.coverUrl != null
-                  ? Image.network(
-                    b.coverUrl!,
-                    width: 48,
-                    height: 48,
-                    fit: BoxFit.cover,
+                  ? Builder(
+                    builder: (context) {
+                      final dpr = MediaQuery.of(context).devicePixelRatio;
+                      return ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: Image.network(
+                          b.coverUrl!,
+                          width: 48,
+                          height: 48,
+                          fit: BoxFit.cover,
+                          cacheHeight: (48 * dpr).round(),
+                          filterQuality: FilterQuality.low,
+                          errorBuilder:
+                              (_, __, ___) => const Icon(Icons.menu_book),
+                        ),
+                      );
+                    },
                   )
                   : const Icon(Icons.menu_book),
           title: Text(b.title),
-          subtitle: Text(b.author),
+          subtitle: Text(b.authorsLabel),
         );
       },
       separatorBuilder: (_, __) => const Divider(height: 1),

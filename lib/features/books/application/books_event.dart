@@ -8,7 +8,7 @@ abstract class BooksEvent extends Equatable {
 
 class BooksSearchRequested extends BooksEvent {
   final String? title;
-  final String? author;
+  final String? author; // buscará contra autores M:N
   const BooksSearchRequested({this.title, this.author});
   @override
   List<Object?> get props => [title, author];
