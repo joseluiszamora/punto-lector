@@ -35,4 +35,24 @@ class Book {
     'summary': summary,
     'published_at': publishedAt?.toIso8601String(),
   }..removeWhere((k, v) => v == null);
+
+  // Nuevo: mapa para actualización
+  Map<String, dynamic> toUpdate() => toInsert();
+
+  // Útil para formularios de edición
+  Book copyWith({
+    String? id,
+    String? title,
+    String? author,
+    String? coverUrl,
+    String? summary,
+    DateTime? publishedAt,
+  }) => Book(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    author: author ?? this.author,
+    coverUrl: coverUrl ?? this.coverUrl,
+    summary: summary ?? this.summary,
+    publishedAt: publishedAt ?? this.publishedAt,
+  );
 }

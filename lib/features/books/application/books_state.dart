@@ -6,6 +6,8 @@ sealed class BooksState extends Equatable {
   const factory BooksState.loading() = BooksLoading;
   const factory BooksState.loaded(List<Book> books) = BooksLoaded;
   const factory BooksState.error(String message) = BooksError;
+  const factory BooksState.operating() = BooksOperating;
+  const factory BooksState.operationSuccess() = BooksOperationSuccess;
 
   @override
   List<Object?> get props => [];
@@ -31,4 +33,12 @@ class BooksError extends BooksState {
   const BooksError(this.message);
   @override
   List<Object?> get props => [message];
+}
+
+class BooksOperating extends BooksState {
+  const BooksOperating();
+}
+
+class BooksOperationSuccess extends BooksState {
+  const BooksOperationSuccess();
 }
