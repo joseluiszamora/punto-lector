@@ -79,7 +79,10 @@ create policy offers_cud on public.offers
 
 -- 🔧 Fix de permisos de esquema
 grant usage on schema public to anon, authenticated;
-grant select on all tables in schema public to anon, authenticated;
+grant select, insert, update, delete on all tables in schema public to anon, authenticated;
 
 alter default privileges in schema public
-grant select on tables to anon, authenticated;
+grant select, insert, update, delete on tables to anon, authenticated;
+
+-- solo para libros
+grant select, insert, update, delete on public.books to anon, authenticated;
