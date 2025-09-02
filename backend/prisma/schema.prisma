@@ -6,7 +6,6 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
-  schemas   = ["public"]
 }
 
 model books {
@@ -16,7 +15,6 @@ model books {
   cover_url     String?
   summary       String?
   review        String?
-  isbn13        String?    @unique
   published_at  DateTime?  @db.Date
   genres        String[]   @default([])
   isbn          String?
@@ -24,11 +22,10 @@ model books {
   created_at    DateTime?  @default(now()) @db.Timestamptz(6)
   updated_at    DateTime?  @default(now()) @db.Timestamptz(6)
   author_id     String?    @db.Uuid
-  author_entity authors?   @relation("BooksAuthors", fields: [author_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  author_entity authors?   @relation("BooksAuthors", fields: [author_id], references: [id], onUpdate: NoAction)
   listings      listings[]
 
   @@index([author_id])
-  @@schema("public")
 }
 
 model authors {
@@ -44,7 +41,6 @@ model authors {
   books      books[]   @relation("BooksAuthors")
 
   @@index([name])
-  @@schema("public")
 }
 
 model listings {
@@ -54,8 +50,8 @@ model listings {
   price      Decimal   @db.Decimal(12, 2)
   currency   String    @default("BOB")
   stock      Int?      @default(0)
-  condition  String    @default("nuevo") // "nuevo" or "usado"
-  book_state Int?      @default(10) @db.SmallInt // estado del libro del 1-10 scale
+  condition  String    @default("nuevo")
+  book_state Int?      @default(10) @db.SmallInt
   active     Boolean?  @default(true)
   created_at DateTime? @default(now()) @db.Timestamptz(6)
   updated_at DateTime? @default(now()) @db.Timestamptz(6)
@@ -64,7 +60,6 @@ model listings {
   offers     offers[]
 
   @@unique([store_id, book_id])
-  @@schema("public")
 }
 
 model offers {
@@ -78,8 +73,6 @@ model offers {
   created_at   DateTime? @default(now()) @db.Timestamptz(6)
   updated_at   DateTime? @default(now()) @db.Timestamptz(6)
   listings     listings  @relation(fields: [listing_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@schema("public")
 }
 
 model stores {
@@ -96,26 +89,26 @@ model stores {
   lng          Float?
   phone        String?
   description  String?
+  photo_url    String?
   active       Boolean?   @default(true)
   created_at   DateTime?  @default(now()) @db.Timestamptz(6)
   updated_at   DateTime?  @default(now()) @db.Timestamptz(6)
   listings     listings[]
-  // users        users      @relation(fields: [owner_uid], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([lat, lng], map: "idx_stores_location")
-  @@schema("public")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-// model user_profiles {
-//   id         String    @id @db.Uuid
-//   email      String
-//   name       String?
-//   avatar_url String?
-//   role       String    @default("user")
-//   created_at DateTime? @default(now()) @db.Timestamptz(6)
-//   updated_at DateTime? @default(now()) @db.Timestamptz(6)
-//   users      users     @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+// NUEVO: perfiles de usuario (refleja public.user_profiles en Supabase)
+model user_profiles {
+  id         String    @id @db.Uuid
+  email      String
+  name       String?
+  avatar_url String?
+  role       String    @default("user")
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  // users      users     @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-//   @@schema("public")
-// }
+  @@index([role])
+  @@map("user_profiles")
+}

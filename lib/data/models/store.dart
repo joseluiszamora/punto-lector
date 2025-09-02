@@ -1,5 +1,5 @@
 class Store {
-  final String id;
+  final String? id;
   final String ownerUid;
   final String name;
   final String? managerName;
@@ -16,7 +16,7 @@ class Store {
   final bool active;
 
   const Store({
-    required this.id,
+    this.id,
     required this.ownerUid,
     required this.name,
     this.managerName,
@@ -34,14 +34,14 @@ class Store {
   });
 
   factory Store.fromMap(Map<String, dynamic> map) => Store(
-    id: map['id'] as String,
+    id: map['id'] as String?,
     ownerUid: map['owner_uid'] as String,
     name: map['name'] as String,
     managerName: map['manager_name'] as String?,
     address: map['address'] as String?,
     city: map['city'] as String?,
     openDays:
-        (map['open_days'] as List?)?.map((e) => e as int).toList() ??
+        (map['open_days'] as List?)?.map((e) => (e as num).toInt()).toList() ??
         const [1, 2, 3, 4, 5],
     openHour: map['open_hour'] as String?,
     closeHour: map['close_hour'] as String?,
@@ -53,7 +53,8 @@ class Store {
     active: (map['active'] as bool?) ?? true,
   );
 
-  Map<String, dynamic> toInsert() => {
+  Map<String, dynamic> toMap() => {
+    'id': id,
     'owner_uid': ownerUid,
     'name': name,
     'manager_name': managerName,
@@ -69,4 +70,10 @@ class Store {
     'photo_url': photoUrl,
     'active': active,
   }..removeWhere((key, value) => value == null);
+
+  Map<String, dynamic> toInsert() {
+    final m = toMap();
+    m.remove('id');
+    return m;
+  }
 }

@@ -27,6 +27,7 @@ create table if not exists public.stores (
   lng double precision,
   phone text,
   description text,
+  photo_url text,
   active boolean default true,
   created_at timestamptz default now(),
   updated_at timestamptz default now()

@@ -12,7 +12,6 @@ import '../../../data/repositories/listings_repository.dart';
 import '../../../data/models/store_listing.dart';
 import '../../books/application/books_bloc.dart';
 import '../../../data/repositories/books_repository.dart';
-import '../../books/presentation/new_book_page.dart';
 
 class MyStorePage extends StatelessWidget {
   const MyStorePage({super.key});
@@ -95,7 +94,7 @@ class MyStorePage extends StatelessWidget {
             create:
                 (_) => StoreListingsBloc(
                   ListingsRepository(SupabaseInit.client),
-                  storeId: store.id,
+                  storeId: store.id!,
                 )..add(const StoreListingsRequested()),
             // Usamos Builder para obtener un contexto bajo este Provider
             child: Builder(
@@ -118,7 +117,9 @@ class MyStorePage extends StatelessWidget {
                               value: store.active,
                               onChanged: (v) {
                                 context.read<StoresBloc>().add(
-                                  StoreUpdateRequested(store.id, {'active': v}),
+                                  StoreUpdateRequested(store.id!, {
+                                    'active': v,
+                                  }),
                                 );
                               },
                             ),
@@ -165,114 +166,27 @@ class MyStorePage extends StatelessWidget {
                             const Spacer(),
                             FilledButton.icon(
                               onPressed: () async {
-                                // 1) Crear un nuevo libro
-                                final created = await Navigator.push<Book>(
-                                  innerCtx,
-                                  MaterialPageRoute(
-                                    builder: (_) => const NewBookPage(),
-                                  ),
-                                );
-                                if (created == null) return;
-                                // 2) Pedir precio y stock y crear listing
-                                final priceCtrl = TextEditingController(
-                                  text: '0',
-                                );
-                                final stockCtrl = TextEditingController(
-                                  text: '0',
-                                );
-                                final formKey = GlobalKey<FormState>();
-                                final ok = await showDialog<bool>(
+                                await showModalBottomSheet(
                                   context: innerCtx,
+                                  isScrollControlled: true,
                                   builder:
-                                      (_) => AlertDialog(
-                                        title: const Text('Detalles de venta'),
-                                        content: Form(
-                                          key: formKey,
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              TextFormField(
-                                                controller: priceCtrl,
-                                                decoration:
-                                                    const InputDecoration(
-                                                      labelText: 'Precio',
-                                                    ),
-                                                keyboardType:
-                                                    const TextInputType.numberWithOptions(
-                                                      decimal: true,
-                                                    ),
-                                                validator: (v) {
-                                                  final val = double.tryParse(
-                                                    (v ?? '').replaceAll(
-                                                      ',',
-                                                      '.',
-                                                    ),
-                                                  );
-                                                  if (val == null)
-                                                    return 'Precio inválido';
-                                                  if (val < 0)
-                                                    return 'No puede ser negativo';
-                                                  return null;
-                                                },
-                                              ),
-                                              TextFormField(
-                                                controller: stockCtrl,
-                                                decoration:
-                                                    const InputDecoration(
-                                                      labelText: 'Stock',
-                                                    ),
-                                                keyboardType:
-                                                    TextInputType.number,
-                                                validator: (v) {
-                                                  final val = int.tryParse(
-                                                    (v ?? '').trim(),
-                                                  );
-                                                  if (val == null)
-                                                    return 'Stock inválido';
-                                                  if (val < 0)
-                                                    return 'No puede ser negativo';
-                                                  return null;
-                                                },
-                                              ),
-                                            ],
+                                      (_) => Padding(
+                                        padding: EdgeInsets.only(
+                                          bottom:
+                                              MediaQuery.of(
+                                                innerCtx,
+                                              ).viewInsets.bottom,
+                                        ),
+                                        child: BlocProvider.value(
+                                          value:
+                                              innerCtx
+                                                  .read<StoreListingsBloc>(),
+                                          child: _AddListingSheet(
+                                            storeId: store.id!,
                                           ),
                                         ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed:
-                                                () => Navigator.pop(
-                                                  innerCtx,
-                                                  false,
-                                                ),
-                                            child: const Text('Cancelar'),
-                                          ),
-                                          FilledButton(
-                                            onPressed: () {
-                                              if (!formKey.currentState!
-                                                  .validate())
-                                                return;
-                                              Navigator.pop(innerCtx, true);
-                                            },
-                                            child: const Text('Agregar'),
-                                          ),
-                                        ],
                                       ),
                                 );
-                                if (ok == true) {
-                                  final price = double.parse(
-                                    priceCtrl.text.replaceAll(',', '.'),
-                                  );
-                                  final stock = int.parse(
-                                    stockCtrl.text.trim(),
-                                  );
-                                  innerCtx.read<StoreListingsBloc>().add(
-                                    StoreListingAddRequested(
-                                      bookId: created.id,
-                                      price: price,
-                                      stock: stock,
-                                    ),
-                                  );
-                                }
                               },
                               icon: const Icon(Icons.add),
                               label: const Text('Agregar libro'),
