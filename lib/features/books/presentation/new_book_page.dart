@@ -21,7 +21,6 @@ class _NewBookPageState extends State<NewBookPage> {
   final _form = GlobalKey<FormState>();
   final _title = TextEditingController();
   final _author = TextEditingController();
-  final _coverUrl = TextEditingController();
   final _summary = TextEditingController();
   DateTime? _publishedAt;
   bool _saving = false;
@@ -34,7 +33,6 @@ class _NewBookPageState extends State<NewBookPage> {
   void dispose() {
     _title.dispose();
     _author.dispose();
-    _coverUrl.dispose();
     _summary.dispose();
     super.dispose();
   }
@@ -127,7 +125,6 @@ class _NewBookPageState extends State<NewBookPage> {
       }
 
       setState(() {
-        _coverUrl.text = signedUrl;
         _previewUrl = signedUrl;
       });
     } catch (e) {
@@ -151,7 +148,7 @@ class _NewBookPageState extends State<NewBookPage> {
         id: 'new',
         title: _title.text.trim(),
         author: _author.text.trim(),
-        coverUrl: _coverUrl.text.trim().isEmpty ? null : _coverUrl.text.trim(),
+        coverUrl: _previewUrl,
         summary: _summary.text.trim().isEmpty ? null : _summary.text.trim(),
         publishedAt: _publishedAt,
       );
@@ -192,35 +189,21 @@ class _NewBookPageState extends State<NewBookPage> {
                   validator:
                       (v) => v == null || v.trim().isEmpty ? 'Requerido' : null,
                 ),
-                // Sección de portada con subida
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _coverUrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Portada (URL)',
-                        ),
-                        keyboardType: TextInputType.url,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    OutlinedButton.icon(
-                      onPressed: _uploading ? null : _pickAndUpload,
-                      icon:
-                          _uploading
-                              ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                              : const Icon(Icons.cloud_upload_outlined),
-                      label: const Text('Subir portada'),
-                    ),
-                  ],
+                // Botón de subida de portada (sin campo URL)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    onPressed: _uploading ? null : _pickAndUpload,
+                    icon:
+                        _uploading
+                            ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                            : const Icon(Icons.cloud_upload_outlined),
+                    label: const Text('Subir portada'),
+                  ),
                 ),
                 if (_previewUrl != null)
                   Padding(

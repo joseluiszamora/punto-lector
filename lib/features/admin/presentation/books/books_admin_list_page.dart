@@ -5,6 +5,11 @@ import '../../../../core/supabase/supabase_client_provider.dart';
 import '../../../../data/models/book.dart';
 import '../../../books/application/books_bloc.dart';
 import '../../../books/presentation/new_book_page.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:math';
+import 'package:mime/mime.dart' as mime;
+import 'package:path/path.dart' as p;
 
 class BooksAdminListPage extends StatelessWidget {
   const BooksAdminListPage({super.key});
@@ -24,6 +29,27 @@ class BooksAdminListPage extends StatelessWidget {
 class _BooksAdminView extends StatelessWidget {
   const _BooksAdminView();
 
+  // Helper para miniatura de portada segura
+  Widget _coverThumb(String? url) {
+    final u = url?.trim();
+    final valid =
+        u != null &&
+        u.isNotEmpty &&
+        (u.startsWith('http://') || u.startsWith('https://'));
+    if (!valid) return const Icon(Icons.menu_book_outlined);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: Image.network(
+        u,
+        width: 40,
+        height: 40,
+        fit: BoxFit.cover,
+        errorBuilder:
+            (context, error, stack) => const Icon(Icons.menu_book_outlined),
+      ),
+    );
+  }
+
   void _openNew(BuildContext context) async {
     final created = await Navigator.push<Book>(
       context,
@@ -37,7 +63,13 @@ class _BooksAdminView extends StatelessWidget {
   void _openEdit(BuildContext context, Book book) async {
     final edited = await Navigator.push<Book>(
       context,
-      MaterialPageRoute(builder: (_) => _EditBookPage(book: book)),
+      MaterialPageRoute(
+        builder:
+            (_) => BlocProvider.value(
+              value: context.read<BooksBloc>(),
+              child: _EditBookPage(book: book),
+            ),
+      ),
     );
     if (edited != null && context.mounted) {
       context.read<BooksBloc>().add(const BooksAdminListRequested());
@@ -115,15 +147,8 @@ class _BooksAdminView extends StatelessWidget {
               itemBuilder: (context, i) {
                 final b = books[i];
                 return ListTile(
-                  leading:
-                      b.coverUrl != null
-                          ? Image.network(
-                            b.coverUrl!,
-                            width: 40,
-                            height: 40,
-                            fit: BoxFit.cover,
-                          )
-                          : const Icon(Icons.menu_book_outlined),
+                  key: ValueKey(b.id),
+                  leading: _coverThumb(b.coverUrl),
                   title: Text(b.title),
                   subtitle: Text(b.author),
                   trailing: Row(
@@ -170,17 +195,19 @@ class _EditBookPageState extends State<_EditBookPage> {
   final _form = GlobalKey<FormState>();
   late final TextEditingController _title;
   late final TextEditingController _author;
-  late final TextEditingController _coverUrl;
   late final TextEditingController _summary;
   DateTime? _publishedAt;
   bool _saving = false;
+
+  String? _previewUrl; // nueva portada subida
+  bool _uploading = false;
+  String? _uploadError;
 
   @override
   void initState() {
     super.initState();
     _title = TextEditingController(text: widget.book.title);
     _author = TextEditingController(text: widget.book.author);
-    _coverUrl = TextEditingController(text: widget.book.coverUrl ?? '');
     _summary = TextEditingController(text: widget.book.summary ?? '');
     _publishedAt = widget.book.publishedAt;
   }
@@ -189,7 +216,6 @@ class _EditBookPageState extends State<_EditBookPage> {
   void dispose() {
     _title.dispose();
     _author.dispose();
-    _coverUrl.dispose();
     _summary.dispose();
     super.dispose();
   }
@@ -205,14 +231,109 @@ class _EditBookPageState extends State<_EditBookPage> {
     if (picked != null) setState(() => _publishedAt = picked);
   }
 
+  String _rand(int len) {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    final r = Random();
+    return List.generate(len, (_) => chars[r.nextInt(chars.length)]).join();
+  }
+
+  Future<void> _pickAndUpload() async {
+    try {
+      final picker = ImagePicker();
+      final x = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 1600,
+      );
+      if (x == null) return;
+      setState(() {
+        _uploading = true;
+        _uploadError = null;
+      });
+      final bytes = await x.readAsBytes();
+      final detectedMime =
+          mime.lookupMimeType(x.path, headerBytes: bytes) ??
+          mime.lookupMimeType(x.name, headerBytes: bytes) ??
+          'image/jpeg';
+      String ext;
+      switch (detectedMime) {
+        case 'image/png':
+          ext = 'png';
+          break;
+        case 'image/webp':
+          ext = 'webp';
+          break;
+        case 'image/jpeg':
+        case 'image/jpg':
+        default:
+          final nameExt = p.extension(x.name).toLowerCase().replaceAll('.', '');
+          ext =
+              ['jpg', 'jpeg', 'png', 'webp'].contains(nameExt)
+                  ? (nameExt == 'jpeg' ? 'jpg' : nameExt)
+                  : 'jpg';
+          break;
+      }
+      final contentType = detectedMime;
+      final objectPath =
+          'covers/${DateTime.now().millisecondsSinceEpoch}_${_rand(6)}.$ext';
+
+      final user = SupabaseInit.client.auth.currentUser;
+      if (user == null) {
+        throw Exception('Debes iniciar sesión para subir archivos.');
+      }
+
+      await SupabaseInit.client.storage
+          .from('book_covers')
+          .uploadBinary(
+            objectPath,
+            bytes,
+            fileOptions: FileOptions(contentType: contentType, upsert: true),
+          );
+
+      String signedUrl;
+      try {
+        signedUrl = await SupabaseInit.client.storage
+            .from('book_covers')
+            .createSignedUrl(objectPath, 60 * 60 * 24 * 365);
+      } catch (_) {
+        signedUrl = SupabaseInit.client.storage
+            .from('book_covers')
+            .getPublicUrl(objectPath);
+      }
+
+      setState(() {
+        _previewUrl = signedUrl;
+      });
+    } catch (e) {
+      setState(() => _uploadError = e.toString());
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al subir portada: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     setState(() => _saving = true);
     try {
+      // Determinar portada efectiva: prioriza la nueva subida, si no, la existente válida
+      String? effectiveCover;
+      if (_previewUrl != null && _previewUrl!.trim().isNotEmpty) {
+        effectiveCover = _previewUrl;
+      } else {
+        final existing = widget.book.coverUrl?.trim();
+        effectiveCover =
+            (existing == null || existing.isEmpty) ? null : existing;
+      }
+
       final updated = widget.book.copyWith(
         title: _title.text.trim(),
         author: _author.text.trim(),
-        coverUrl: _coverUrl.text.trim().isEmpty ? null : _coverUrl.text.trim(),
+        coverUrl: effectiveCover,
         summary: _summary.text.trim().isEmpty ? null : _summary.text.trim(),
         publishedAt: _publishedAt,
       );
@@ -256,11 +377,42 @@ class _EditBookPageState extends State<_EditBookPage> {
                   validator:
                       (v) => v == null || v.trim().isEmpty ? 'Requerido' : null,
                 ),
-                TextFormField(
-                  controller: _coverUrl,
-                  decoration: const InputDecoration(labelText: 'Portada (URL)'),
-                  keyboardType: TextInputType.url,
+                // Botón de subida de portada (sin campo URL)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    onPressed: _uploading ? null : _pickAndUpload,
+                    icon:
+                        _uploading
+                            ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                            : const Icon(Icons.cloud_upload_outlined),
+                    label: const Text('Subir portada'),
+                  ),
                 ),
+                if ((_previewUrl ?? widget.book.coverUrl) != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        (_previewUrl ?? widget.book.coverUrl)!,
+                        height: 160,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                if (_uploadError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      _uploadError!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
                 TextFormField(
                   controller: _summary,
                   decoration: const InputDecoration(labelText: 'Resumen'),
