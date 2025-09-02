@@ -5,6 +5,7 @@ abstract class IStoresRepository {
   Future<List<Store>> listMyStores(String ownerUid);
   Future<Store> create(Store store);
   Future<Store> update(String id, Map<String, dynamic> patch);
+  Future<void> delete(String id);
 }
 
 class StoresRepository implements IStoresRepository {
@@ -42,5 +43,10 @@ class StoresRepository implements IStoresRepository {
             .select()
             .single();
     return Store.fromMap(Map<String, dynamic>.from(res as Map));
+  }
+
+  @override
+  Future<void> delete(String id) async {
+    await _client.from('stores').delete().eq('id', id);
   }
 }
