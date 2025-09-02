@@ -27,7 +27,7 @@ class RootNavPage extends StatelessWidget {
       // Libros
       BlocProvider(
         create: (_) => BooksBloc(BooksRepository(SupabaseInit.client)),
-        child: const SingleChildScrollView(child: BookSearchSection()),
+        child: const BookSearchSection(),
       ),
       // Tiendas (mapa)
       const StoresMapPage(),
@@ -75,7 +75,7 @@ class RootNavPage extends StatelessWidget {
         builder: (context, index) {
           final safeIndex = index >= pages.length ? pages.length - 1 : index;
           return Scaffold(
-            appBar: AppBar(title: const Text('Punto Lector')),
+            // appBar: AppBar(title: const Text('Punto Lector')),
             body: IndexedStack(index: safeIndex, children: pages),
             bottomNavigationBar: BottomNavigationBar(
               currentIndex: safeIndex,

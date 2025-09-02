@@ -16,45 +16,52 @@ class _BookSearchSectionState extends State<BookSearchSection> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        TextField(
-          controller: _titleCtrl,
-          decoration: const InputDecoration(labelText: 'Título'),
-        ),
-        TextField(
-          controller: _authorCtrl,
-          decoration: const InputDecoration(labelText: 'Autor'),
-        ),
-        const SizedBox(height: 8),
-        ElevatedButton(
-          onPressed:
-              () => context.read<BooksBloc>().add(
-                BooksSearchRequested(
-                  title: _titleCtrl.text,
-                  author: _authorCtrl.text,
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: _titleCtrl,
+            decoration: const InputDecoration(labelText: 'Título'),
+          ),
+          TextField(
+            controller: _authorCtrl,
+            decoration: const InputDecoration(labelText: 'Autor'),
+          ),
+          const SizedBox(height: 8),
+          ElevatedButton(
+            onPressed:
+                () => context.read<BooksBloc>().add(
+                  BooksSearchRequested(
+                    title: _titleCtrl.text,
+                    author: _authorCtrl.text,
+                  ),
                 ),
-              ),
-          child: const Text('Buscar'),
-        ),
-        const SizedBox(height: 12),
-        BlocBuilder<BooksBloc, BooksState>(
-          builder: (context, state) {
-            return switch (state) {
-              BooksLoading() => const Center(
-                child: CircularProgressIndicator(),
-              ),
-              BooksLoaded(:final books) => _ResultsList(books: books),
-              BooksError(:final message) => Text(
-                message,
-                style: const TextStyle(color: Colors.red),
-              ),
-              _ => const SizedBox.shrink(),
-            };
-          },
-        ),
-      ],
+            child: const Text('Buscar'),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: BlocBuilder<BooksBloc, BooksState>(
+              builder: (context, state) {
+                return switch (state) {
+                  BooksLoading() => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                  BooksLoaded(:final books) => _ResultsList(books: books),
+                  BooksError(:final message) => Center(
+                    child: Text(
+                      message,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+                  _ => const SizedBox.shrink(),
+                };
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -66,8 +73,6 @@ class _ResultsList extends StatelessWidget {
   Widget build(BuildContext context) {
     if (books.isEmpty) return const Text('Sin resultados');
     return ListView.separated(
-      physics: const NeverScrollableScrollPhysics(),
-      shrinkWrap: true,
       itemCount: books.length,
       itemBuilder: (_, i) {
         final b = books[i];
