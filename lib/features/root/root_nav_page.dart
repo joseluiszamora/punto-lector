@@ -9,12 +9,20 @@ import '../../core/supabase/supabase_client_provider.dart';
 import '../../data/repositories/books_repository.dart';
 import '../books/application/books_bloc.dart';
 import '../stores/presentation/my_store_page.dart';
+import '../admin/presentation/admin_page.dart';
+import '../auth/state/auth_bloc.dart';
+import '../../data/models/user_role.dart';
 
 class RootNavPage extends StatelessWidget {
   const RootNavPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final authState = context.watch<AuthBloc>().state;
+    final isAdmin = authState is Authenticated && authState.user.role.isAdmin;
+    final isStoreManager =
+        authState is Authenticated && authState.user.role.isStoreManager;
+
     final pages = [
       // Libros
       BlocProvider(
@@ -24,45 +32,53 @@ class RootNavPage extends StatelessWidget {
       // Tiendas (mapa)
       const StoresMapPage(),
       // Mi tienda (administración)
-      const MyStorePage(),
+      if (isStoreManager) const MyStorePage(),
       // Favoritos
       const FavoritesPage(),
       // Perfil
       const ProfilePage(),
+      if (isAdmin) const AdminPage(),
     ];
 
-    final items = const <BottomNavigationBarItem>[
-      BottomNavigationBarItem(
+    final items = <BottomNavigationBarItem>[
+      const BottomNavigationBarItem(
         icon: Icon(Icons.menu_book_outlined),
         label: 'Libros',
       ),
-      BottomNavigationBarItem(
+      const BottomNavigationBarItem(
         icon: Icon(Icons.store_mall_directory_outlined),
         label: 'Tiendas',
       ),
-      BottomNavigationBarItem(
-        icon: Icon(Icons.storefront_outlined),
-        label: 'Mi tienda',
-      ),
-      BottomNavigationBarItem(
+      if (isStoreManager)
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.storefront_outlined),
+          label: 'Mi tienda',
+        ),
+      const BottomNavigationBarItem(
         icon: Icon(Icons.favorite_outline),
         label: 'Favoritos',
       ),
-      BottomNavigationBarItem(
+      const BottomNavigationBarItem(
         icon: Icon(Icons.person_outline),
         label: 'Perfil',
       ),
+      if (isAdmin)
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.admin_panel_settings_outlined),
+          label: 'Admin',
+        ),
     ];
 
     return BlocProvider(
       create: (_) => NavCubit(),
       child: BlocBuilder<NavCubit, int>(
         builder: (context, index) {
+          final safeIndex = index >= pages.length ? pages.length - 1 : index;
           return Scaffold(
             appBar: AppBar(title: const Text('Punto Lector')),
-            body: IndexedStack(index: index, children: pages),
+            body: IndexedStack(index: safeIndex, children: pages),
             bottomNavigationBar: BottomNavigationBar(
-              currentIndex: index,
+              currentIndex: safeIndex,
               onTap: context.read<NavCubit>().setTab,
               type: BottomNavigationBarType.fixed,
               items: items,

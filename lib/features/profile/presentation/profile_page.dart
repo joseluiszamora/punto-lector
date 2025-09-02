@@ -31,6 +31,9 @@ class ProfilePage extends StatelessWidget {
               Text(text),
               const SizedBox(height: 16),
               if (authState is Authenticated)
+                Text('Rol de usuario: ${authState.user.role}'),
+              const SizedBox(height: 16),
+              if (authState is Authenticated)
                 ElevatedButton(
                   onPressed:
                       () => context.read<AuthBloc>().add(

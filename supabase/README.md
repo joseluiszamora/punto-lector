@@ -1,6 +1,7 @@
 jecuta en este orden:
 schema.sql →
 policies.sql →
+triggers.sql
 seed.sql.
 
 si se agrego antes algun policy

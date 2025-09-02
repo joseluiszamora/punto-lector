@@ -25,21 +25,31 @@ create policy stores_select on public.stores
   for select using (true);
 
 create policy stores_insert on public.stores
-  for insert with check (auth.uid() is not null and (public.current_role() in ('store_manager','admin')));
+for insert
+with check (
+  auth.uid() is not null
+  and owner_uid = auth.uid()
+  and public.current_role() in ('store_manager','admin','super_admin')
+);
 
 create policy stores_update on public.stores
-  for update using (owner_uid = auth.uid() or public.current_role() = 'admin');
+for update
+using (owner_uid = auth.uid() or public.current_role() in ('admin','super_admin'))
+with check (owner_uid = auth.uid() or public.current_role() in ('admin','super_admin'));
 
 create policy stores_delete on public.stores
-  for delete using (owner_uid = auth.uid() or public.current_role() = 'admin');
+for delete
+using (owner_uid = auth.uid() or public.current_role() in ('admin','super_admin'));
 
 -- books (admin only write)
 create policy books_select on public.books
   for select using (true);
 
 create policy books_write on public.books
-  for all using (public.current_role() = 'admin')
-  with check (public.current_role() = 'admin');
+for all
+using (public.current_role() in ('admin','super_admin'))
+with check (public.current_role() in ('admin','super_admin'));
+
 
 -- listings
 create policy listings_select on public.listings
