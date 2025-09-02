@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'books/books_admin_list_page.dart';
 import 'categories/categories_admin_list_page.dart';
+import 'authors/authors_admin_list_page.dart';
 
 class AdminPage extends StatelessWidget {
   const AdminPage({super.key});
@@ -33,6 +34,17 @@ class AdminPage extends StatelessWidget {
                   ),
               icon: const Icon(Icons.category),
               label: const Text('Admin Categorias'),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed:
+                  () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AuthorsAdminListPage(),
+                    ),
+                  ),
+              icon: const Icon(Icons.person_outline),
+              label: const Text('Admin Autores'),
             ),
             const SizedBox(height: 12),
             const Text('admin'),
