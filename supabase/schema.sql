@@ -33,11 +33,23 @@ create table if not exists public.stores (
   updated_at timestamptz default now()
 );
 
+-- Authors (catálogo)
+create table if not exists public.authors (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  bio text,
+  birth_date date,
+  death_date date,
+  photo_url text,
+  website text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
 -- Books (catalog)
 create table if not exists public.books (
   id uuid primary key default gen_random_uuid(),
   title text not null,
-  author text not null,
   cover_url text,
   summary text,
   review text,
@@ -47,6 +59,32 @@ create table if not exists public.books (
   language text default 'es',
   created_at timestamptz default now(),
   updated_at timestamptz default now()
+);
+
+-- Relación M:N: books <-> authors
+create table if not exists public.books_authors (
+  book_id uuid not null references public.books(id) on delete cascade,
+  author_id uuid not null references public.authors(id) on delete cascade,
+  created_at timestamptz default now(),
+  primary key (book_id, author_id)
+);
+
+-- Categories
+create table if not exists public.categories (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  description text,
+  color text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- Relación M:N: books <-> categories
+create table if not exists public.book_categories (
+  book_id uuid not null references public.books(id) on delete cascade,
+  category_id uuid not null references public.categories(id) on delete cascade,
+  created_at timestamptz default now(),
+  primary key (book_id, category_id)
 );
 
 -- Listings: book for sale by store
@@ -76,6 +114,16 @@ create table if not exists public.offers (
   updated_at timestamptz default now()
 );
 
+-- Favorites (libros favoritos por usuario)
+create table if not exists public.favorites (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  book_id uuid not null references public.books(id) on delete cascade,
+  created_at timestamptz default now(),
+  unique (user_id, book_id)
+);
+
 -- Basic indexes
-create index if not exists idx_books_title on public.books using gin (to_tsvector('spanish', coalesce(title,'') || ' ' || coalesce(author,'')));
+create index if not exists idx_books_title on public.books using gin (to_tsvector('spanish', coalesce(title,'') || ' ' || coalesce(summary,'')));
 create index if not exists idx_stores_location on public.stores (lat, lng);
+create index if not exists idx_authors_name on public.authors (name);
