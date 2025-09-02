@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:math';
 import 'package:mime/mime.dart' as mime;
 import 'package:path/path.dart' as p;
+import 'package:image_cropper/image_cropper.dart';
 
 class BooksAdminListPage extends StatelessWidget {
   const BooksAdminListPage({super.key});
@@ -240,21 +241,37 @@ class _EditBookPageState extends State<_EditBookPage> {
   Future<void> _pickAndUpload() async {
     try {
       final picker = ImagePicker();
-      final x = await picker.pickImage(
+      final picked = await picker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 85,
-        maxWidth: 1600,
+        maxWidth: 2000,
       );
-      if (x == null) return;
+      if (picked == null) return;
+
+      final cropped = await ImageCropper().cropImage(
+        sourcePath: picked.path,
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 90,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Recortar portada',
+            toolbarColor: Colors.black,
+            toolbarWidgetColor: Colors.white,
+            lockAspectRatio: false,
+          ),
+          IOSUiSettings(title: 'Recortar portada'),
+        ],
+      );
+      if (cropped == null) return;
+
       setState(() {
         _uploading = true;
         _uploadError = null;
       });
-      final bytes = await x.readAsBytes();
+
+      final bytes = await XFile(cropped.path).readAsBytes();
       final detectedMime =
-          mime.lookupMimeType(x.path, headerBytes: bytes) ??
-          mime.lookupMimeType(x.name, headerBytes: bytes) ??
-          'image/jpeg';
+          mime.lookupMimeType(cropped.path, headerBytes: bytes) ?? 'image/jpeg';
       String ext;
       switch (detectedMime) {
         case 'image/png':
@@ -266,7 +283,10 @@ class _EditBookPageState extends State<_EditBookPage> {
         case 'image/jpeg':
         case 'image/jpg':
         default:
-          final nameExt = p.extension(x.name).toLowerCase().replaceAll('.', '');
+          final nameExt = p
+              .extension(cropped.path)
+              .toLowerCase()
+              .replaceAll('.', '');
           ext =
               ['jpg', 'jpeg', 'png', 'webp'].contains(nameExt)
                   ? (nameExt == 'jpeg' ? 'jpg' : nameExt)

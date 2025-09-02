@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../data/models/book.dart';
 import '../../../data/repositories/books_repository.dart';
 import '../../../core/supabase/supabase_client_provider.dart';
-// Nuevos imports para subir imagen
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:math';
 import 'package:mime/mime.dart' as mime;
@@ -57,23 +57,41 @@ class _NewBookPageState extends State<NewBookPage> {
   Future<void> _pickAndUpload() async {
     try {
       final picker = ImagePicker();
-      final x = await picker.pickImage(
+      final picked = await picker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 85,
-        maxWidth: 1600,
+        maxWidth: 2000,
       );
-      if (x == null) return;
+      if (picked == null) return;
+
+      // Recortar imagen antes de subir
+      final cropped = await ImageCropper().cropImage(
+        sourcePath: picked.path,
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 90,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Recortar portada',
+            toolbarColor: Colors.black,
+            toolbarWidgetColor: Colors.white,
+            lockAspectRatio: false,
+          ),
+          IOSUiSettings(title: 'Recortar portada'),
+        ],
+      );
+      if (cropped == null) return;
+
       setState(() {
         _uploading = true;
         _uploadError = null;
       });
-      final bytes = await x.readAsBytes();
-      // Detectar MIME confiable
+
+      // Leer bytes del archivo recortado
+      final croppedX = XFile(cropped.path);
+      final bytes = await croppedX.readAsBytes();
+
       final detectedMime =
-          mime.lookupMimeType(x.path, headerBytes: bytes) ??
-          mime.lookupMimeType(x.name, headerBytes: bytes) ??
-          'image/jpeg';
-      // Determinar extensión por MIME o por nombre
+          mime.lookupMimeType(cropped.path, headerBytes: bytes) ?? 'image/jpeg';
       String ext;
       switch (detectedMime) {
         case 'image/png':
@@ -85,8 +103,10 @@ class _NewBookPageState extends State<NewBookPage> {
         case 'image/jpeg':
         case 'image/jpg':
         default:
-          // Si el nombre tiene extensión conocida, úsala
-          final nameExt = p.extension(x.name).toLowerCase().replaceAll('.', '');
+          final nameExt = p
+              .extension(cropped.path)
+              .toLowerCase()
+              .replaceAll('.', '');
           ext =
               ['jpg', 'jpeg', 'png', 'webp'].contains(nameExt)
                   ? (nameExt == 'jpeg' ? 'jpg' : nameExt)
@@ -97,7 +117,6 @@ class _NewBookPageState extends State<NewBookPage> {
       final objectPath =
           'covers/${DateTime.now().millisecondsSinceEpoch}_${_rand(6)}.$ext';
 
-      // Verificar sesión (storage requiere auth para escribir)
       final user = SupabaseInit.client.auth.currentUser;
       if (user == null) {
         throw Exception('Debes iniciar sesión para subir archivos.');
@@ -111,14 +130,12 @@ class _NewBookPageState extends State<NewBookPage> {
             fileOptions: FileOptions(contentType: contentType, upsert: true),
           );
 
-      // Preferir URL firmada (funciona aunque el bucket no sea público)
       String signedUrl;
       try {
         signedUrl = await SupabaseInit.client.storage
             .from('book_covers')
-            .createSignedUrl(objectPath, 60 * 60 * 24 * 365); // 1 año
+            .createSignedUrl(objectPath, 60 * 60 * 24 * 365);
       } catch (_) {
-        // Fallback a URL pública si el bucket es público
         signedUrl = SupabaseInit.client.storage
             .from('book_covers')
             .getPublicUrl(objectPath);
