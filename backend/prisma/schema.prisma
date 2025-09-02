@@ -16,7 +16,6 @@ model books {
   summary       String?
   review        String?
   published_at  DateTime?  @db.Date
-  genres        String[]   @default([])
   isbn          String?
   language      String?    @default("es")
   created_at    DateTime?  @default(now()) @db.Timestamptz(6)
@@ -98,7 +97,6 @@ model stores {
   @@index([lat, lng], map: "idx_stores_location")
 }
 
-// NUEVO: perfiles de usuario (refleja public.user_profiles en Supabase)
 model user_profiles {
   id         String    @id @db.Uuid
   email      String
@@ -107,7 +105,6 @@ model user_profiles {
   role       String    @default("user")
   created_at DateTime? @default(now()) @db.Timestamptz(6)
   updated_at DateTime? @default(now()) @db.Timestamptz(6)
-  // users      users     @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([role])
   @@map("user_profiles")
