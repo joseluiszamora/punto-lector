@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/supabase/supabase_client_provider.dart';
 import '../../../../data/models/store.dart';
 import '../../../../data/repositories/stores_repository.dart';
+import 'store_location_picker_page.dart';
 // Nuevos imports para upload de imagen
 import 'dart:math';
 import 'package:image_picker/image_picker.dart';
@@ -589,6 +590,29 @@ class _StoreDialogState extends State<_StoreDialog> {
                         decimal: true,
                       ),
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    tooltip: 'Elegir en mapa',
+                    icon: const Icon(Icons.map_outlined),
+                    onPressed: () async {
+                      final picked = await Navigator.push<StorePickedLocation>(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (_) => StoreLocationPickerPage(
+                                initialLat: double.tryParse(_lat.text.trim()),
+                                initialLng: double.tryParse(_lng.text.trim()),
+                              ),
+                        ),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          _lat.text = picked.lat.toStringAsFixed(6);
+                          _lng.text = picked.lng.toStringAsFixed(6);
+                        });
+                      }
+                    },
                   ),
                 ],
               ),
