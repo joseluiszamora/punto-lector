@@ -3,6 +3,7 @@ import 'books/books_admin_list_page.dart';
 import 'categories/categories_admin_list_page.dart';
 import 'authors/authors_admin_list_page.dart';
 import 'stores/stores_admin_list_page.dart';
+import 'users/users_admin_list_page.dart';
 
 class AdminPage extends StatelessWidget {
   const AdminPage({super.key});
@@ -58,6 +59,17 @@ class AdminPage extends StatelessWidget {
                     ),
                 icon: const Icon(Icons.storefront_outlined),
                 label: const Text('Admin Tiendas'),
+              ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed:
+                    () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const UsersAdminListPage(),
+                      ),
+                    ),
+                icon: const Icon(Icons.supervisor_account_outlined),
+                label: const Text('Admin Usuarios'),
               ),
             ],
           ),
