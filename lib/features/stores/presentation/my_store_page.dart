@@ -170,11 +170,11 @@ class MyStorePage extends StatelessWidget {
                                   context: innerCtx,
                                   isScrollControlled: true,
                                   builder:
-                                      (_) => Padding(
+                                      (sheetCtx) => Padding(
                                         padding: EdgeInsets.only(
                                           bottom:
                                               MediaQuery.of(
-                                                innerCtx,
+                                                sheetCtx,
                                               ).viewInsets.bottom,
                                         ),
                                         child: BlocProvider.value(
@@ -348,73 +348,77 @@ class _AddListingSheetState extends State<_AddListingSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: BlocProvider(
-        create: (_) => BooksBloc(BooksRepository(SupabaseInit.client)),
-        child: Builder(
-          builder:
-              (ctx) => Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Buscar libro',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _titleCtrl,
-                    decoration: const InputDecoration(labelText: 'Título'),
-                  ),
-                  const SizedBox(height: 8),
-                  ElevatedButton(
-                    onPressed: () {
-                      ctx.read<BooksBloc>().add(
-                        BooksSearchRequested(title: _titleCtrl.text),
-                      );
-                    },
-                    child: const Text('Buscar'),
-                  ),
-                  const SizedBox(height: 8),
-                  Flexible(
-                    child: BlocBuilder<BooksBloc, BooksState>(
-                      builder: (context, state) {
-                        if (state is BooksLoading) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: BlocProvider(
+          create: (_) => BooksBloc(BooksRepository(SupabaseInit.client)),
+          child: Builder(
+            builder:
+                (ctx) => SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Buscar libro',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _titleCtrl,
+                        decoration: const InputDecoration(labelText: 'Título'),
+                      ),
+                      const SizedBox(height: 8),
+                      ElevatedButton(
+                        onPressed: () {
+                          ctx.read<BooksBloc>().add(
+                            BooksSearchRequested(title: _titleCtrl.text),
                           );
-                        }
-                        if (state is BooksError) {
-                          return Text(
-                            state.message,
-                            style: const TextStyle(color: Colors.red),
-                          );
-                        }
-                        final books =
-                            state is BooksLoaded ? state.books : <Book>[];
-                        if (books.isEmpty) {
-                          return const Text('Sin resultados');
-                        }
-                        return ListView.separated(
-                          shrinkWrap: true,
-                          itemCount: books.length,
-                          itemBuilder: (_, i) {
-                            final b = books[i];
-                            return ListTile(
-                              leading: _CoverImage(url: b.coverUrl, size: 40),
-                              title: Text(b.title),
-                              subtitle: Text(b.authorsLabel),
-                              onTap: () => _askPriceAndAdd(b.id),
+                        },
+                        child: const Text('Buscar'),
+                      ),
+                      const SizedBox(height: 8),
+                      BlocBuilder<BooksBloc, BooksState>(
+                        builder: (context, state) {
+                          if (state is BooksLoading) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
                             );
-                          },
-                          separatorBuilder: (_, __) => const Divider(height: 1),
-                        );
-                      },
-                    ),
+                          }
+                          if (state is BooksError) {
+                            return Text(
+                              state.message,
+                              style: const TextStyle(color: Colors.red),
+                            );
+                          }
+                          final books =
+                              state is BooksLoaded ? state.books : <Book>[];
+                          if (books.isEmpty) {
+                            return const Text('Sin resultados');
+                          }
+                          return ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: books.length,
+                            itemBuilder: (_, i) {
+                              final b = books[i];
+                              return ListTile(
+                                leading: _CoverImage(url: b.coverUrl, size: 40),
+                                title: Text(b.title),
+                                subtitle: Text(b.authorsLabel),
+                                onTap: () => _askPriceAndAdd(b.id),
+                              );
+                            },
+                            separatorBuilder:
+                                (_, __) => const Divider(height: 1),
+                          );
+                        },
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+          ),
         ),
       ),
     );
