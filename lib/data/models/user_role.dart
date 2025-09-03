@@ -23,4 +23,5 @@ extension UserRoleX on UserRole {
 
   bool get isAdmin => this == UserRole.admin || this == UserRole.superAdmin;
   bool get isStoreManager => this == UserRole.storeManager;
+  bool get isUser => this == UserRole.user;
 }

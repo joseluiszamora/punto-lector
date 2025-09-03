@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:puntolector/features/maps/map_page.dart';
 import '../../core/navigation/nav_cubit.dart';
 import '../books/presentation/search_section.dart';
 import '../stores/presentation/stores_map_page.dart';
@@ -22,6 +23,7 @@ class RootNavPage extends StatelessWidget {
     final isAdmin = authState is Authenticated && authState.user.role.isAdmin;
     final isStoreManager =
         authState is Authenticated && authState.user.role.isStoreManager;
+    final isUser = authState is Authenticated && authState.user.role.isUser;
 
     final pages = [
       // Libros
@@ -34,7 +36,7 @@ class RootNavPage extends StatelessWidget {
       // Mi tienda (administración)
       if (isStoreManager) const MyStorePage(),
       // Favoritos
-      const FavoritesPage(),
+      if (isUser) const FavoritesPage(),
       // Perfil
       const ProfilePage(),
       if (isAdmin) const AdminPage(),
@@ -54,10 +56,11 @@ class RootNavPage extends StatelessWidget {
           icon: Icon(Icons.storefront_outlined),
           label: 'Mi tienda',
         ),
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.favorite_outline),
-        label: 'Favoritos',
-      ),
+      if (isUser)
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.favorite_outline),
+          label: 'Favoritos',
+        ),
       const BottomNavigationBarItem(
         icon: Icon(Icons.person_outline),
         label: 'Perfil',

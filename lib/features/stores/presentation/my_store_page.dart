@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:puntolector/features/stores/presentation/widgets/store_info.dart';
 import '../../auth/state/auth_bloc.dart';
 import '../application/stores_bloc.dart';
 import '../../../core/supabase/supabase_client_provider.dart';
@@ -103,59 +104,7 @@ class MyStorePage extends StatelessWidget {
                     padding: const EdgeInsets.all(16.0),
                     child: ListView(
                       children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.store_mall_directory_outlined),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                store.name,
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                            ),
-                            Switch(
-                              value: store.active,
-                              onChanged: (v) {
-                                context.read<StoresBloc>().add(
-                                  StoreUpdateRequested(store.id!, {
-                                    'active': v,
-                                  }),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        ListTile(
-                          leading: const Icon(Icons.person_outline),
-                          title: Text(store.managerName ?? '—'),
-                          subtitle: const Text('Encargado'),
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.place_outlined),
-                          title: Text(store.address ?? '—'),
-                          subtitle: Text(store.city ?? ''),
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.access_time),
-                          title: Text(
-                            'Horario: ${store.openHour ?? '--:--'} - ${store.closeHour ?? '--:--'}',
-                          ),
-                          subtitle: Text(
-                            'Días: ${(store.openDays).join(', ')}',
-                          ),
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.phone_outlined),
-                          title: Text(store.phone ?? '—'),
-                        ),
-                        if (store.description != null &&
-                            store.description!.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: Text(store.description!),
-                          ),
-
+                        StoreInfo(store: store),
                         const SizedBox(height: 24),
                         Row(
                           children: [
