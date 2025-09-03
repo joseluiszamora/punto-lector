@@ -59,8 +59,6 @@ class AdminPage extends StatelessWidget {
                 icon: const Icon(Icons.storefront_outlined),
                 label: const Text('Admin Tiendas'),
               ),
-              const SizedBox(height: 12),
-              const Text('admin'),
             ],
           ),
         ),

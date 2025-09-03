@@ -7,7 +7,6 @@ import '../../../core/supabase/supabase_client_provider.dart';
 import '../../../data/repositories/stores_repository.dart';
 import '../../../core/config/env.dart';
 import '../../../data/models/store.dart';
-import 'store_form_page.dart';
 
 class StoresMapPage extends StatefulWidget {
   const StoresMapPage({super.key});
@@ -66,7 +65,6 @@ class _StoresMapPageState extends State<StoresMapPage> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthBloc>().state;
     final ownerUid = auth is Authenticated ? auth.user.id : '';
-    final isAuthed = auth is Authenticated;
     return BlocProvider(
       create:
           (_) => StoresBloc(
@@ -77,25 +75,6 @@ class _StoresMapPageState extends State<StoresMapPage> {
         builder:
             (innerCtx) => Scaffold(
               appBar: AppBar(title: const Text('Tiendas en el mapa')),
-              floatingActionButton:
-                  isAuthed
-                      ? FloatingActionButton(
-                        onPressed: () {
-                          final bloc = innerCtx.read<StoresBloc>();
-                          Navigator.push(
-                            innerCtx,
-                            MaterialPageRoute(
-                              builder:
-                                  (_) => BlocProvider.value(
-                                    value: bloc,
-                                    child: const StoreFormPage(),
-                                  ),
-                            ),
-                          );
-                        },
-                        child: const Icon(Icons.add_business),
-                      )
-                      : null,
               body: BlocConsumer<StoresBloc, StoresState>(
                 listener: (context, state) async {
                   if (state is StoresLoaded) {
