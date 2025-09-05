@@ -9,6 +9,7 @@ alter table public.categories enable row level security;
 alter table public.books_authors enable row level security;
 alter table public.book_categories enable row level security;
 alter table public.favorites enable row level security;
+alter table public.synonyms enable row level security;
 
 -- helper: role from user_profiles
 create or replace function public.current_role() returns text language sql stable as $$
@@ -157,6 +158,17 @@ drop policy if exists favorites_delete on public.favorites;
 create policy favorites_delete on public.favorites
   for delete using (user_id = auth.uid());
 
+-- synonyms (lectura pública, escritura admin)
+drop policy if exists synonyms_select on public.synonyms;
+create policy synonyms_select on public.synonyms
+  for select using (true);
+
+drop policy if exists synonyms_write on public.synonyms;
+create policy synonyms_write on public.synonyms
+for all
+using (public.current_role() in ('admin','super_admin'))
+with check (public.current_role() in ('admin','super_admin'));
+
 -- 🔧 Fix de permisos de esquema
 grant usage on schema public to anon, authenticated;
 grant select, insert, update, delete on all tables in schema public to anon, authenticated;
@@ -166,3 +178,7 @@ grant select, insert, update, delete on tables to anon, authenticated;
 
 -- compatibilidad (libros)
 grant select, insert, update, delete on public.books to anon, authenticated;
+
+-- funciones RPC
+grant execute on function public.books_suggestions(text, int) to anon, authenticated;
+grant execute on function public.search_books(text, jsonb, int, int, text) to anon, authenticated;

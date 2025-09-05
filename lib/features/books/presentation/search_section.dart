@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../application/books_bloc.dart';
@@ -10,12 +11,44 @@ class BookSearchSection extends StatefulWidget {
   State<BookSearchSection> createState() => _BookSearchSectionState();
 }
 
-class _BookSearchSectionState extends State<BookSearchSection> {
+class _BookSearchSectionState extends State<BookSearchSection>
+    with AutomaticKeepAliveClientMixin {
   final _titleCtrl = TextEditingController();
   final _authorCtrl = TextEditingController();
 
+  Timer? _debounce;
+  final _debounceDuration = const Duration(milliseconds: 700);
+
+  @override
+  void initState() {
+    super.initState();
+    _titleCtrl.addListener(_onQueryChanged);
+    _authorCtrl.addListener(_onQueryChanged);
+  }
+
+  void _onQueryChanged() {
+    _debounce?.cancel();
+    _debounce = Timer(_debounceDuration, () {
+      context.read<BooksBloc>().add(
+        BooksSearchRequested(title: _titleCtrl.text, author: _authorCtrl.text),
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _titleCtrl.dispose();
+    _authorCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -23,11 +56,35 @@ class _BookSearchSectionState extends State<BookSearchSection> {
         children: [
           TextField(
             controller: _titleCtrl,
-            decoration: const InputDecoration(labelText: 'Título'),
+            decoration: InputDecoration(
+              labelText: 'Título',
+              suffixIcon:
+                  _titleCtrl.text.isNotEmpty
+                      ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _titleCtrl.clear();
+                          _onQueryChanged();
+                        },
+                      )
+                      : null,
+            ),
           ),
           TextField(
             controller: _authorCtrl,
-            decoration: const InputDecoration(labelText: 'Autor'),
+            decoration: InputDecoration(
+              labelText: 'Autor',
+              suffixIcon:
+                  _authorCtrl.text.isNotEmpty
+                      ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _authorCtrl.clear();
+                          _onQueryChanged();
+                        },
+                      )
+                      : null,
+            ),
           ),
           const SizedBox(height: 8),
           ElevatedButton(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:puntolector/features/books/presentation/search_book_page.dart';
 import 'package:puntolector/features/maps/map_page.dart';
 import '../../core/navigation/nav_cubit.dart';
 import '../books/presentation/search_section.dart';
@@ -27,10 +28,7 @@ class RootNavPage extends StatelessWidget {
 
     final pages = [
       // Libros
-      BlocProvider(
-        create: (_) => BooksBloc(BooksRepository(SupabaseInit.client)),
-        child: const BookSearchSection(),
-      ),
+      const SearchBookPage(),
       // Tiendas (mapa)
       const StoresMapPage(),
       // Mi tienda (administración)

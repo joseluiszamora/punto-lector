@@ -1,150 +1,4 @@
--- Supabase schema for Punto Lector
--- Run via Supabase SQL editor or CLI
-
 -- Extensiones necesarias para búsqueda avanzada
-create extension if not exists pg_trgm;
-create extension if not exists unaccent;
-
--- Users profile (external auth in auth.users)
-create table if not exists public.user_profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  email text not null,
-  name text,
-  avatar_url text,
-  role text not null default 'user' check (role in ('user','store_manager','admin','super_admin')),
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-
--- Stores
-create table if not exists public.stores (
-  id uuid primary key default gen_random_uuid(),
-  owner_uid uuid not null references auth.users(id) on delete cascade,
-  name text not null,
-  manager_name text,
-  address text,
-  city text,
-  open_days int[] default '{1,2,3,4,5}',
-  open_hour text,
-  close_hour text,
-  lat double precision,
-  lng double precision,
-  phone text,
-  description text,
-  photo_url text,
-  active boolean default true,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-
--- Authors (catálogo)
-create table if not exists public.authors (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  bio text,
-  birth_date date,
-  death_date date,
-  photo_url text,
-  website text,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-
--- Books (catalog)
-create table if not exists public.books (
-  id uuid primary key default gen_random_uuid(),
-  title text not null,
-  cover_url text,
-  summary text,
-  review text,
-  published_at date,
-  genres text[] default '{}',
-  isbn text,
-  language text default 'es',
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-
--- Relación M:N: books <-> authors
-create table if not exists public.books_authors (
-  book_id uuid not null references public.books(id) on delete cascade,
-  author_id uuid not null references public.authors(id) on delete cascade,
-  created_at timestamptz default now(),
-  primary key (book_id, author_id)
-);
-
--- Categories
-create table if not exists public.categories (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  description text,
-  color text,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-
--- Relación M:N: books <-> categories
-create table if not exists public.book_categories (
-  book_id uuid not null references public.books(id) on delete cascade,
-  category_id uuid not null references public.categories(id) on delete cascade,
-  created_at timestamptz default now(),
-  primary key (book_id, category_id)
-);
-
--- Listings: book for sale by store
-create table if not exists public.listings (
-  id uuid primary key default gen_random_uuid(),
-  store_id uuid not null references public.stores(id) on delete cascade,
-  book_id uuid not null references public.books(id) on delete cascade,
-  price numeric(12,2) not null,
-  currency text not null default 'BOB',
-  stock int default 0,
-  active boolean default true,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now(),
-  unique (store_id, book_id)
-);
-
--- Offers
-create table if not exists public.offers (
-  id uuid primary key default gen_random_uuid(),
-  listing_id uuid not null references public.listings(id) on delete cascade,
-  discount_pct numeric(5,2),
-  price_after numeric(12,2),
-  start_at timestamptz,
-  end_at timestamptz,
-  active boolean default true,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-
--- Favorites (libros favoritos por usuario)
-create table if not exists public.favorites (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  book_id uuid not null references public.books(id) on delete cascade,
-  created_at timestamptz default now(),
-  unique (user_id, book_id)
-);
-
--- Tabla de sinónimos para búsqueda
-create table if not exists public.synonyms (
-  id uuid primary key default gen_random_uuid(),
-  term text not null,
-  synonyms text[] not null default '{}',
-  language text not null default 'es',
-  created_at timestamptz default now(),
-  updated_at timestamptz default now(),
-  unique(term, language)
-);
-
--- Basic indexes
--- Eliminar índice legado y usar solo el GIN con configuración es_unaccent
-drop index if exists idx_books_title;
-create index if not exists idx_stores_location on public.stores (lat, lng);
-create index if not exists idx_authors_name on public.authors (name);
-
--- Búsqueda avanzada: trigram + FTS
 create extension if not exists pg_trgm;
 create extension if not exists unaccent;
 
@@ -162,20 +16,38 @@ alter text search configuration public.es_unaccent
   alter mapping for hword, hword_part, word
   with unaccent, spanish_stem;
 
+-- Tabla de sinónimos
+create table if not exists public.synonyms (
+  id uuid primary key default gen_random_uuid(),
+  term text not null,
+  synonyms text[] not null default '{}',
+  language text not null default 'es',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  unique(term, language)
+);
+
+-- Normalización helper
+create or replace function public.normalize_unaccent(txt text)
+returns text
+language sql
+stable
+as $$
+  select lower(unaccent(coalesce(txt, '')));
+$$;
+
+-- Índices trigram para similitud
 create index if not exists idx_books_title_trgm on public.books using gin (title gin_trgm_ops);
 create index if not exists idx_books_summary_trgm on public.books using gin (summary gin_trgm_ops);
 create index if not exists idx_authors_name_trgm on public.authors using gin (name gin_trgm_ops);
 create index if not exists idx_categories_name_trgm on public.categories using gin (name gin_trgm_ops);
+
+-- Índice GIN con unaccent para FTS (vía configuración de texto)
 create index if not exists idx_books_tsv_es_unaccent on public.books using gin (
   to_tsvector('public.es_unaccent', coalesce(title,'') || ' ' || coalesce(summary,''))
 );
 
--- Funciones RPC de búsqueda
-create or replace function public.normalize_unaccent(txt text)
-returns text language sql stable as $$
-  select lower(unaccent(coalesce(txt, '')));
-$$;
-
+-- Sugerencias de búsqueda (títulos, autores, categorías y sinónimos)
 create or replace function public.books_suggestions(q text, lim int default 10)
 returns table(
   suggestion text,
@@ -183,7 +55,9 @@ returns table(
   ref_id uuid,
   score real
 ) language sql stable as $$
-  with norm as (select public.normalize_unaccent(q) as qn),
+  with norm as (
+    select public.normalize_unaccent(q) as qn
+  ),
   book_sug as (
     select b.title as suggestion, 'book'::text as source, b.id as ref_id,
       greatest(similarity(public.normalize_unaccent(b.title), (select qn from norm)), 0)::real as score
@@ -223,6 +97,7 @@ returns table(
   limit coalesce(lim, 10);
 $$;
 
+-- Búsqueda avanzada de libros con facetas básicas y ordenación
 create or replace function public.search_books(
   q text,
   filters jsonb default '{}'::jsonb,
@@ -243,7 +118,7 @@ create or replace function public.search_books(
 ) language sql stable as $$
   with params as (
     select
-      q as q_raw,
+      public.normalize_unaccent(q) as qn,
       plainto_tsquery('public.es_unaccent', coalesce(q, '')) as tsq,
       greatest(page, 1) as p,
       greatest(page_size, 1) as ps,
@@ -263,9 +138,10 @@ create or replace function public.search_books(
       b.published_at,
       array_remove(array_agg(distinct a.name), null) as authors,
       array_remove(array_agg(distinct c.name), null) as categories,
+      -- ranking: combina FTS + trigram
       greatest(
         ts_rank_cd(to_tsvector('public.es_unaccent', coalesce(b.title,'') || ' ' || coalesce(b.summary,'')), (select tsq from params)),
-        similarity(public.normalize_unaccent(b.title), public.normalize_unaccent((select q_raw from params)))
+        similarity(public.normalize_unaccent(b.title), (select qn from params))
       )::real as score,
       count(distinct l.id) as listings_count,
       min(l.price) as min_price,
@@ -283,10 +159,10 @@ create or replace function public.search_books(
   filtered as (
     select * from base
     where (
-      (select q_raw is null or q_raw = '' from params)
+      (select q is null or q = '' from (select $1 as q) qv) -- si q vacío, no filtramos por texto
       or (
         to_tsvector('public.es_unaccent', coalesce(title,'') || ' ' || coalesce(title,'')) @@ (select tsq from params)
-        or similarity(public.normalize_unaccent(title), public.normalize_unaccent((select q_raw from params))) > 0.2
+        or similarity(public.normalize_unaccent(title), (select qn from params)) > 0.2
       )
     )
     and (
