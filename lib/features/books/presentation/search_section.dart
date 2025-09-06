@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:puntolector/core/supabase/supabase_client_provider.dart';
+import 'package:puntolector/data/repositories/favorites_repository.dart';
 import '../application/books_bloc.dart';
 import '../../../data/models/book.dart';
+import 'book_details_sheet.dart';
 
 class BookSearchSection extends StatefulWidget {
   const BookSearchSection({super.key});
@@ -129,6 +132,8 @@ class _ResultsList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (books.isEmpty) return const Text('Sin resultados');
+    final userId = SupabaseInit.client.auth.currentUser?.id;
+    final favRepo = FavoritesRepository(SupabaseInit.client);
     return ListView.separated(
       itemCount: books.length,
       itemBuilder: (_, i) {
@@ -156,10 +161,94 @@ class _ResultsList extends StatelessWidget {
                   )
                   : const Icon(Icons.menu_book),
           title: Text(b.title),
+          onTap: () => showBookDetailsSheet(context, b),
           subtitle: Text(b.authorsLabel),
+          trailing:
+              userId == null
+                  ? null
+                  : _FavoriteButton(
+                    bookId: b.id,
+                    repository: favRepo,
+                    userId: userId,
+                  ),
         );
       },
       separatorBuilder: (_, __) => const Divider(height: 1),
+    );
+  }
+}
+
+class _FavoriteButton extends StatefulWidget {
+  final String userId;
+  final String bookId;
+  final FavoritesRepository repository;
+  const _FavoriteButton({
+    required this.userId,
+    required this.bookId,
+    required this.repository,
+  });
+
+  @override
+  State<_FavoriteButton> createState() => _FavoriteButtonState();
+}
+
+class _FavoriteButtonState extends State<_FavoriteButton> {
+  bool? _isFav; // null = cargando
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final v = await widget.repository.isFavorited(
+        widget.userId,
+        widget.bookId,
+      );
+      if (mounted) setState(() => _isFav = v);
+    } catch (_) {
+      if (mounted) setState(() => _isFav = false);
+    }
+  }
+
+  Future<void> _toggle() async {
+    if (_busy || _isFav == null) return;
+    setState(() => _busy = true);
+    try {
+      if (_isFav == true) {
+        await widget.repository.removeByBook(widget.userId, widget.bookId);
+        if (mounted) setState(() => _isFav = false);
+      } else {
+        await widget.repository.add(widget.userId, widget.bookId);
+        if (mounted) setState(() => _isFav = true);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al actualizar favorito: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isFav == null) {
+      return const SizedBox(
+        width: 24,
+        height: 24,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      );
+    }
+    return IconButton(
+      icon: Icon(_isFav! ? Icons.favorite : Icons.favorite_border),
+      color: _isFav! ? Colors.red : null,
+      onPressed: _toggle,
+      tooltip: _isFav! ? 'Quitar de favoritos' : 'Agregar a favoritos',
     );
   }
 }
