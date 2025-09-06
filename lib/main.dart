@@ -6,6 +6,7 @@ import 'core/routing/app_router.dart';
 import 'core/supabase/supabase_client_provider.dart';
 import 'data/repositories/auth_repository.dart';
 import 'features/auth/state/auth_bloc.dart';
+import 'core/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,10 +31,9 @@ class PuntoLectorApp extends StatelessWidget {
         ],
         child: MaterialApp(
           title: Env.appName,
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-            useMaterial3: true,
-          ),
+          theme: AppTheme.light(),
+          darkTheme: AppTheme.dark(),
+          themeMode: ThemeMode.system,
           initialRoute: '/',
           onGenerateRoute: onGenerateRoute,
         ),
