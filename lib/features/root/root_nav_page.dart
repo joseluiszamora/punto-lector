@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:puntolector/features/books/book_lists_page.dart';
 import 'package:puntolector/features/books/presentation/search_book_page.dart';
 import 'package:puntolector/features/maps/map_page.dart';
 import '../../core/navigation/nav_cubit.dart';
@@ -27,6 +28,8 @@ class RootNavPage extends StatelessWidget {
     final isUser = authState is Authenticated && authState.user.role.isUser;
 
     final pages = [
+      // Todos los Libros
+      const BookListsPage(),
       // Libros
       const SearchBookPage(),
       // Tiendas (mapa)
@@ -41,6 +44,10 @@ class RootNavPage extends StatelessWidget {
     ];
 
     final items = <BottomNavigationBarItem>[
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.menu_book_outlined),
+        label: 'Todos',
+      ),
       const BottomNavigationBarItem(
         icon: Icon(Icons.menu_book_outlined),
         label: 'Libros',
