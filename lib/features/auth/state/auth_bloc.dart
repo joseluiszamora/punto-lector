@@ -15,6 +15,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<SignOutRequested>(_onSignOut);
     on<SignInWithEmailPassword>(_onEmailSignIn);
     on<SignUpWithEmailPassword>(_onEmailSignUp);
+    on<RequireProfileCompletion>(_onRequireProfileCompletion);
+    on<UpdateProfileRequested>(_onUpdateProfile);
   }
 
   Future<void> _onStarted(AuthStarted event, Emitter<AuthState> emit) async {
@@ -22,7 +24,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     await emit.forEach<AppUser?>(
       _repo.authStateChanges(),
       onData: (user) {
-        if (user != null) return AuthState.authenticated(user);
+        if (user != null) {
+          // No podemos hacer async aquí; emitimos provisionalmente y dejamos que UI redirija según Splash o evento explícito
+          return AuthState.authenticated(user);
+        }
         return const AuthState.unauthenticated();
       },
       onError: (_, __) => const AuthState.error('Error de autenticación'),
@@ -48,7 +53,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       emit(const AuthState.loading());
       await _repo.signInWithEmailPassword(event.email, event.password);
-      // el stream actualizará el estado
     } catch (e) {
       emit(AuthState.error(e.toString()));
     }
@@ -66,8 +70,39 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         name: event.name,
         nationalityId: event.nationalityId,
       );
-      // Si Supabase requiere verificación por correo, mantendremos al usuario como no autenticado hasta confirmar
       emit(const AuthState.unauthenticated());
+    } catch (e) {
+      emit(AuthState.error(e.toString()));
+    }
+  }
+
+  Future<void> _onRequireProfileCompletion(
+    RequireProfileCompletion event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AuthState.requireProfileCompletion());
+  }
+
+  Future<void> _onUpdateProfile(
+    UpdateProfileRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    try {
+      emit(const AuthState.loading());
+      await _repo.updateCurrentUserProfile(
+        firstName: event.firstName,
+        lastName: event.lastName,
+        nationalityId: event.nationalityId,
+      );
+      final isComplete = await _repo.isCurrentUserProfileComplete();
+      if (isComplete) {
+        final user = _repo.currentUser;
+        if (user != null) {
+          emit(AuthState.authenticated(user));
+          return;
+        }
+      }
+      emit(const AuthState.requireProfileCompletion());
     } catch (e) {
       emit(AuthState.error(e.toString()));
     }

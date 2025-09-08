@@ -13,6 +13,12 @@ abstract class IAuthRepository {
     String? name,
     String? nationalityId,
   });
+  Future<bool> isCurrentUserProfileComplete();
+  Future<void> updateCurrentUserProfile({
+    String? firstName,
+    String? lastName,
+    String? nationalityId,
+  });
   Future<void> signOut();
   AppUser? get currentUser;
 }
@@ -56,6 +62,20 @@ class AuthRepository implements IAuthRepository {
     // Intentar leer perfil
     final prof = await _fetchProfile(user.id);
     if (prof != null) {
+      // Si falta avatar_url y el proveedor lo trae, actualizarlo
+      final metaAvatar = user.userMetadata?['avatar_url'] as String?;
+      if ((prof['avatar_url'] == null ||
+              (prof['avatar_url'] as String).isEmpty) &&
+          metaAvatar != null &&
+          metaAvatar.isNotEmpty) {
+        try {
+          await _client
+              .from('user_profiles')
+              .update({'avatar_url': metaAvatar})
+              .eq('id', user.id);
+          prof['avatar_url'] = metaAvatar;
+        } catch (_) {}
+      }
       return AppUser(
         id: prof['id'] as String,
         email: (prof['email'] as String?) ?? (user.email ?? ''),
@@ -155,6 +175,42 @@ class AuthRepository implements IAuthRepository {
         // noop, RLS puede impedir escritura inmediata si policies cambian
       }
     }
+  }
+
+  @override
+  Future<bool> isCurrentUserProfileComplete() async {
+    final u = _client.auth.currentUser;
+    if (u == null) return false;
+    final data =
+        await _client
+            .from('user_profiles')
+            .select('first_name, last_name, nationality_id')
+            .eq('id', u.id)
+            .maybeSingle();
+    if (data == null) return false;
+    final map = Map<String, dynamic>.from(data as Map);
+    final first = (map['first_name'] as String?)?.trim();
+    final last = (map['last_name'] as String?)?.trim();
+    final nat = map['nationality_id'] as String?;
+    return (first != null && first.isNotEmpty) &&
+        (last != null && last.isNotEmpty) &&
+        (nat != null && nat.isNotEmpty);
+  }
+
+  @override
+  Future<void> updateCurrentUserProfile({
+    String? firstName,
+    String? lastName,
+    String? nationalityId,
+  }) async {
+    final u = _client.auth.currentUser;
+    if (u == null) return;
+    final payload = <String, dynamic>{};
+    if (firstName != null) payload['first_name'] = firstName;
+    if (lastName != null) payload['last_name'] = lastName;
+    if (nationalityId != null) payload['nationality_id'] = nationalityId;
+    if (payload.isEmpty) return;
+    await _client.from('user_profiles').update(payload).eq('id', u.id);
   }
 
   @override

@@ -10,6 +10,8 @@ sealed class AuthState extends Equatable {
   const factory AuthState.loading() = AuthLoading;
   const factory AuthState.authenticated(AppUser user) = Authenticated;
   const factory AuthState.unauthenticated() = Unauthenticated;
+  const factory AuthState.requireProfileCompletion() =
+      RequireProfileCompletionState;
   const factory AuthState.error(String message) = AuthError;
 
   T? whenOrNull<T>({
@@ -17,6 +19,7 @@ sealed class AuthState extends Equatable {
     T Function()? loading,
     T Function(AppUser user)? authenticated,
     T Function()? unauthenticated,
+    T Function()? requireProfileCompletion,
     T Function(String message)? error,
   }) {
     final s = this;
@@ -24,6 +27,8 @@ sealed class AuthState extends Equatable {
     if (s is AuthLoading) return loading?.call();
     if (s is Authenticated) return authenticated?.call(s.user);
     if (s is Unauthenticated) return unauthenticated?.call();
+    if (s is RequireProfileCompletionState)
+      return requireProfileCompletion?.call();
     if (s is AuthError) return error?.call(s.message);
     return null;
   }
@@ -33,6 +38,7 @@ sealed class AuthState extends Equatable {
     T Function()? loading,
     T Function(AppUser user)? authenticated,
     T Function()? unauthenticated,
+    T Function()? requireProfileCompletion,
     T Function(String message)? error,
     required T Function() orElse,
   }) {
@@ -41,6 +47,7 @@ sealed class AuthState extends Equatable {
           loading: loading,
           authenticated: authenticated,
           unauthenticated: unauthenticated,
+          requireProfileCompletion: requireProfileCompletion,
           error: error,
         ) ??
         orElse();
@@ -64,6 +71,10 @@ class Authenticated extends AuthState {
 
 class Unauthenticated extends AuthState {
   const Unauthenticated();
+}
+
+class RequireProfileCompletionState extends AuthState {
+  const RequireProfileCompletionState();
 }
 
 class AuthError extends AuthState {

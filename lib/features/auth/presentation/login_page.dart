@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import '../../../core/routing/app_router.dart' as r;
 import '../../auth/state/auth_bloc.dart';
+import '../../../data/repositories/auth_repository.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -80,9 +81,26 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Ingresar')),
       body: BlocConsumer<AuthBloc, AuthState>(
-        listener: (context, state) {
+        listener: (context, state) async {
           if (state is Authenticated) {
-            Navigator.pushReplacementNamed(context, r.AppRoutes.home);
+            // Verificar perfil completo en este punto
+            final repo = context.read<IAuthRepository>();
+            final complete = await repo.isCurrentUserProfileComplete();
+            if (complete) {
+              if (!mounted) return;
+              Navigator.pushReplacementNamed(context, r.AppRoutes.home);
+            } else {
+              if (!mounted) return;
+              Navigator.pushReplacementNamed(
+                context,
+                r.AppRoutes.completeProfile,
+              );
+            }
+          } else if (state is RequireProfileCompletionState) {
+            Navigator.pushReplacementNamed(
+              context,
+              r.AppRoutes.completeProfile,
+            );
           }
         },
         builder: (context, state) {
