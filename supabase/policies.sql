@@ -10,6 +10,7 @@ alter table public.books_authors enable row level security;
 alter table public.book_categories enable row level security;
 alter table public.favorites enable row level security;
 alter table public.synonyms enable row level security;
+alter table public.nationalities enable row level security;
 
 -- helper: role from user_profiles
 create or replace function public.current_role() returns text language sql stable as $$
@@ -165,6 +166,17 @@ create policy synonyms_select on public.synonyms
 
 drop policy if exists synonyms_write on public.synonyms;
 create policy synonyms_write on public.synonyms
+for all
+using (public.current_role() in ('admin','super_admin'))
+with check (public.current_role() in ('admin','super_admin'));
+
+-- nationalities (lectura pública, escritura admin)
+drop policy if exists nationalities_select on public.nationalities;
+create policy nationalities_select on public.nationalities
+  for select using (true);
+
+drop policy if exists nationalities_write on public.nationalities;
+create policy nationalities_write on public.nationalities
 for all
 using (public.current_role() in ('admin','super_admin'))
 with check (public.current_role() in ('admin','super_admin'));

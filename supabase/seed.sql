@@ -165,4 +165,32 @@ from u, public.books b
 where b.title in ('Cien años de soledad')
 and not exists (select 1 from public.favorites f where f.user_id = u.id and f.book_id = b.id);
 
+-- A) Nationalities (países hispanohablantes principales)
+insert into public.nationalities (name, country_code, flag_url)
+values
+  ('Argentina', 'ar', 'https://flagcdn.com/48x36/ar.png'),
+  ('Bolivia', 'bo', 'https://flagcdn.com/48x36/bo.png'),
+  ('Chile', 'cl', 'https://flagcdn.com/48x36/cl.png'),
+  ('Colombia', 'co', 'https://flagcdn.com/48x36/co.png'),
+  ('Costa Rica', 'cr', 'https://flagcdn.com/48x36/cr.png'),
+  ('Cuba', 'cu', 'https://flagcdn.com/48x36/cu.png'),
+  ('Ecuador', 'ec', 'https://flagcdn.com/48x36/ec.png'),
+  ('El Salvador', 'sv', 'https://flagcdn.com/48x36/sv.png'),
+  ('España', 'es', 'https://flagcdn.com/48x36/es.png'),
+  ('Guatemala', 'gt', 'https://flagcdn.com/48x36/gt.png'),
+  ('Honduras', 'hn', 'https://flagcdn.com/48x36/hn.png'),
+  ('México', 'mx', 'https://flagcdn.com/48x36/mx.png'),
+  ('Nicaragua', 'ni', 'https://flagcdn.com/48x36/ni.png'),
+  ('Panamá', 'pa', 'https://flagcdn.com/48x36/pa.png'),
+  ('Paraguay', 'py', 'https://flagcdn.com/48x36/py.png'),
+  ('Perú', 'pe', 'https://flagcdn.com/48x36/pe.png'),
+  ('Puerto Rico', 'pr', 'https://flagcdn.com/48x36/pr.png'),
+  ('República Dominicana', 'do', 'https://flagcdn.com/48x36/do.png'),
+  ('Uruguay', 'uy', 'https://flagcdn.com/48x36/uy.png'),
+  ('Venezuela', 've', 'https://flagcdn.com/48x36/ve.png')
+on conflict (country_code) do update set
+  name = excluded.name,
+  flag_url = excluded.flag_url,
+  updated_at = now();
+
 -- Fin del seed

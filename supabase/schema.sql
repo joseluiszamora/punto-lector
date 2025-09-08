@@ -16,6 +16,26 @@ create table if not exists public.user_profiles (
   updated_at timestamptz default now()
 );
 
+-- Nationalities (tabla de países/nacionalidades)
+create table if not exists public.nationalities (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  country_code text not null unique,
+  flag_url text not null,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+create index if not exists idx_nationalities_name on public.nationalities (name);
+
+-- FK y columnas adicionales en user_profiles (idempotente)
+alter table if exists public.user_profiles
+  add column if not exists first_name text,
+  add column if not exists last_name text,
+  add column if not exists nationality_id uuid references public.nationalities(id) on delete set null;
+
+create index if not exists idx_user_profiles_name on public.user_profiles (last_name, first_name);
+create index if not exists idx_user_profiles_nationality on public.user_profiles (nationality_id);
+
 -- Stores
 create table if not exists public.stores (
   id uuid primary key default gen_random_uuid(),
