@@ -13,6 +13,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthStarted>(_onStarted);
     on<SignInWithGoogle>(_onGoogle);
     on<SignOutRequested>(_onSignOut);
+    on<SignInWithEmailPassword>(_onEmailSignIn);
+    on<SignUpWithEmailPassword>(_onEmailSignUp);
   }
 
   Future<void> _onStarted(AuthStarted event, Emitter<AuthState> emit) async {
@@ -34,6 +36,38 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       emit(const AuthState.loading());
       await _repo.signInWithGoogle();
+    } catch (e) {
+      emit(AuthState.error(e.toString()));
+    }
+  }
+
+  Future<void> _onEmailSignIn(
+    SignInWithEmailPassword event,
+    Emitter<AuthState> emit,
+  ) async {
+    try {
+      emit(const AuthState.loading());
+      await _repo.signInWithEmailPassword(event.email, event.password);
+      // el stream actualizará el estado
+    } catch (e) {
+      emit(AuthState.error(e.toString()));
+    }
+  }
+
+  Future<void> _onEmailSignUp(
+    SignUpWithEmailPassword event,
+    Emitter<AuthState> emit,
+  ) async {
+    try {
+      emit(const AuthState.loading());
+      await _repo.signUpWithEmailPassword(
+        event.email,
+        event.password,
+        name: event.name,
+        nationalityId: event.nationalityId,
+      );
+      // Si Supabase requiere verificación por correo, mantendremos al usuario como no autenticado hasta confirmar
+      emit(const AuthState.unauthenticated());
     } catch (e) {
       emit(AuthState.error(e.toString()));
     }

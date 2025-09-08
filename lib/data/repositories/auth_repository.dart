@@ -6,6 +6,13 @@ import '../../core/config/env.dart';
 abstract class IAuthRepository {
   Stream<AppUser?> authStateChanges();
   Future<AppUser?> signInWithGoogle();
+  Future<void> signInWithEmailPassword(String email, String password);
+  Future<void> signUpWithEmailPassword(
+    String email,
+    String password, {
+    String? name,
+    String? nationalityId,
+  });
   Future<void> signOut();
   AppUser? get currentUser;
 }
@@ -112,6 +119,42 @@ class AuthRepository implements IAuthRepository {
     );
     // El stream emitirá el usuario al volver del OAuth
     return null;
+  }
+
+  @override
+  Future<void> signInWithEmailPassword(String email, String password) async {
+    await _client.auth.signInWithPassword(email: email, password: password);
+  }
+
+  @override
+  Future<void> signUpWithEmailPassword(
+    String email,
+    String password, {
+    String? name,
+    String? nationalityId,
+  }) async {
+    final res = await _client.auth.signUp(
+      email: email,
+      password: password,
+      data: {if (name != null && name.isNotEmpty) 'name': name},
+      emailRedirectTo:
+          '${Env.supabaseRedirectScheme}://${Env.supabaseRedirectHostname}',
+    );
+
+    final newUser = res.user;
+    if (newUser != null) {
+      try {
+        await _client.from('user_profiles').upsert({
+          'id': newUser.id,
+          'email': newUser.email ?? email,
+          'name': name,
+          if (nationalityId != null && nationalityId.isNotEmpty)
+            'nationality_id': nationalityId,
+        });
+      } catch (_) {
+        // noop, RLS puede impedir escritura inmediata si policies cambian
+      }
+    }
   }
 
   @override
