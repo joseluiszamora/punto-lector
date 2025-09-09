@@ -142,29 +142,29 @@ class AppTheme {
         textStyle: TextStyle(color: scheme.onInverseSurface),
       ),
       checkboxTheme: CheckboxThemeData(
-        fillColor: MaterialStateProperty.resolveWith(
+        fillColor: WidgetStateProperty.resolveWith(
           (s) =>
-              s.contains(MaterialState.selected)
+              s.contains(WidgetState.selected)
                   ? scheme.primary
                   : scheme.outlineVariant,
         ),
       ),
       switchTheme: SwitchThemeData(
-        trackColor: MaterialStateProperty.resolveWith(
+        trackColor: WidgetStateProperty.resolveWith(
           (s) =>
-              s.contains(MaterialState.selected)
+              s.contains(WidgetState.selected)
                   ? scheme.primary.withOpacity(0.5)
                   : scheme.outlineVariant,
         ),
-        thumbColor: MaterialStateProperty.resolveWith(
+        thumbColor: WidgetStateProperty.resolveWith(
           (s) =>
-              s.contains(MaterialState.selected)
+              s.contains(WidgetState.selected)
                   ? scheme.primary
                   : scheme.onSurfaceVariant,
         ),
       ),
       radioTheme: RadioThemeData(
-        fillColor: MaterialStateProperty.all(scheme.primary),
+        fillColor: WidgetStateProperty.all(scheme.primary),
       ),
     );
   }
@@ -228,29 +228,29 @@ class AppTheme {
         textStyle: TextStyle(color: scheme.onInverseSurface),
       ),
       checkboxTheme: light().checkboxTheme.copyWith(
-        fillColor: MaterialStateProperty.resolveWith(
+        fillColor: WidgetStateProperty.resolveWith(
           (s) =>
-              s.contains(MaterialState.selected)
+              s.contains(WidgetState.selected)
                   ? scheme.secondary
                   : scheme.outlineVariant,
         ),
       ),
       switchTheme: light().switchTheme.copyWith(
-        trackColor: MaterialStateProperty.resolveWith(
+        trackColor: WidgetStateProperty.resolveWith(
           (s) =>
-              s.contains(MaterialState.selected)
+              s.contains(WidgetState.selected)
                   ? scheme.secondary.withOpacity(0.5)
                   : scheme.outlineVariant,
         ),
-        thumbColor: MaterialStateProperty.resolveWith(
+        thumbColor: WidgetStateProperty.resolveWith(
           (s) =>
-              s.contains(MaterialState.selected)
+              s.contains(WidgetState.selected)
                   ? scheme.secondary
                   : scheme.onSurfaceVariant,
         ),
       ),
       radioTheme: RadioThemeData(
-        fillColor: MaterialStateProperty.all(scheme.secondary),
+        fillColor: WidgetStateProperty.all(scheme.secondary),
       ),
     );
   }
