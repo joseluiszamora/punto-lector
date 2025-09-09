@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:puntolector/core/supabase/supabase_client_provider.dart';
 
 import '../../../data/models/book.dart';
 
@@ -13,13 +14,34 @@ Future<T?> showBookDetailsSheet<T>(BuildContext context, Book book) {
   );
 }
 
-class _BookDetailsSheet extends StatelessWidget {
+class _BookDetailsSheet extends StatefulWidget {
   final Book book;
   const _BookDetailsSheet({required this.book});
 
   @override
+  State<_BookDetailsSheet> createState() => _BookDetailsSheetState();
+}
+
+class _BookDetailsSheetState extends State<_BookDetailsSheet> {
+  @override
+  void initState() {
+    super.initState();
+    // Log de vista del libro (ignorar errores silenciosamente)
+    // Se ejecuta una sola vez cuando se abre la hoja.
+    Future.microtask(() async {
+      try {
+        await SupabaseInit.client.rpc(
+          'log_book_view',
+          params: {'p_book_id': widget.book.id},
+        );
+      } catch (_) {}
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final book = widget.book;
     final categories = book.categories.map((c) => c.name).join(', ');
     return DraggableScrollableSheet(
       expand: false,

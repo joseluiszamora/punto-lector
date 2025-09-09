@@ -9,20 +9,24 @@ datasource db {
 }
 
 model books {
-  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  title        String
-  cover_url    String?
-  summary      String?
-  review       String?
-  published_at DateTime?    @db.Date
-  isbn         String?
-  language     String?      @default("es")
-  created_at   DateTime?    @default(now()) @db.Timestamptz(6)
-  updated_at   DateTime?    @default(now()) @db.Timestamptz(6)
-  authors      authors[]
-  listings     listings[]
-  categories   categories[]
-  favorites    favorites[]
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title            String
+  cover_url        String?
+  summary          String?
+  review           String?
+  published_at     DateTime?          @db.Date
+  isbn             String?
+  language         String?            @default("es")
+  created_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  authors          authors[]
+  listings         listings[]
+  categories       categories[]
+  favorites        favorites[]
+  // Nuevas relaciones inversas para analítica
+  search_events    search_events[]
+  book_views       book_views[]
+  book_stats_daily book_stats_daily[]
 }
 
 model authors {
@@ -165,4 +169,47 @@ model nationalities {
   @@unique([country_code])
   @@index([name])
   @@map("nationalities")
+}
+
+/// Analítica de popularidad
+model search_events {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String?   @db.Uuid
+  q          String?
+  book_id    String?   @db.Uuid
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+
+  book books? @relation(fields: [book_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([created_at])
+  @@index([book_id])
+  @@map("search_events")
+}
+
+model book_views {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String?   @db.Uuid
+  book_id    String    @db.Uuid
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+
+  book books @relation(fields: [book_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([created_at])
+  @@index([book_id])
+  @@map("book_views")
+}
+
+model book_stats_daily {
+  day       DateTime @db.Date
+  book_id   String   @db.Uuid
+  views     Int      @default(0)
+  searches  Int      @default(0)
+  favorites Int      @default(0)
+
+  book books @relation(fields: [book_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([day, book_id])
+  @@index([book_id])
+  @@index([day])
+  @@map("book_stats_daily")
 }

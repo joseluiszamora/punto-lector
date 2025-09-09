@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/book.dart';
+import '../models/author.dart';
+import '../models/category.dart';
 
 abstract class IBooksRepository {
   Future<List<Book>> search({String? title, String? author, int limit = 20});
@@ -8,6 +10,13 @@ abstract class IBooksRepository {
   Future<Book> getById(String id);
   Future<Book> update(String id, Book book);
   Future<void> delete(String id);
+  // Nuevo: populares
+  Future<List<Book>> popularBooks({
+    String window,
+    String mode,
+    int limit,
+    int offset,
+  });
 }
 
 class BooksRepository implements IBooksRepository {
@@ -109,5 +118,45 @@ class BooksRepository implements IBooksRepository {
   @override
   Future<void> delete(String id) async {
     await _client.from('books').delete().eq('id', id);
+  }
+
+  // Nuevo: consulta de populares vía RPC
+  @override
+  Future<List<Book>> popularBooks({
+    String window = '7d',
+    String mode = 'trending',
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    final res =
+        await _client
+            .rpc(
+              'get_popular_books',
+              params: {
+                'p_window': window,
+                'p_limit': limit,
+                'p_offset': offset,
+                'p_mode': mode,
+              },
+            )
+            .select();
+    final list = (res as List).cast<Map<String, dynamic>>();
+    return list.map((m) {
+      final authors =
+          ((m['authors'] as List?) ?? const [])
+              .map((n) => Author(id: '', name: n as String))
+              .toList();
+      final categories =
+          ((m['categories'] as List?) ?? const [])
+              .map((n) => Category(id: '', name: n as String))
+              .toList();
+      return Book(
+        id: m['id'] as String,
+        title: m['title'] as String,
+        coverUrl: m['cover_url'] as String?,
+        authors: authors,
+        categories: categories,
+      );
+    }).toList();
   }
 }

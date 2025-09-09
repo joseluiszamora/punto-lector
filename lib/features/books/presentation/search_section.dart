@@ -22,6 +22,15 @@ class _BookSearchSectionState extends State<BookSearchSection>
   Timer? _debounce;
   final _debounceDuration = const Duration(milliseconds: 700);
 
+  String get _currentQuery {
+    final parts = <String>[];
+    final t = _titleCtrl.text.trim();
+    final a = _authorCtrl.text.trim();
+    if (t.isNotEmpty) parts.add(t);
+    if (a.isNotEmpty) parts.add(a);
+    return parts.join(' ').trim();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -91,13 +100,25 @@ class _BookSearchSectionState extends State<BookSearchSection>
           ),
           const SizedBox(height: 8),
           ElevatedButton(
-            onPressed:
-                () => context.read<BooksBloc>().add(
-                  BooksSearchRequested(
-                    title: _titleCtrl.text,
-                    author: _authorCtrl.text,
-                  ),
+            onPressed: () async {
+              // Log del término de búsqueda explícito
+              final q = _currentQuery;
+              if (q.isNotEmpty) {
+                try {
+                  await SupabaseInit.client.rpc(
+                    'log_search',
+                    params: {'p_q': q},
+                  );
+                } catch (_) {}
+              }
+              if (!mounted) return;
+              context.read<BooksBloc>().add(
+                BooksSearchRequested(
+                  title: _titleCtrl.text,
+                  author: _authorCtrl.text,
                 ),
+              );
+            },
             child: const Text('Buscar'),
           ),
           const SizedBox(height: 12),
@@ -108,7 +129,10 @@ class _BookSearchSectionState extends State<BookSearchSection>
                   BooksLoading() => const Center(
                     child: CircularProgressIndicator(),
                   ),
-                  BooksLoaded(:final books) => _ResultsList(books: books),
+                  BooksLoaded(:final books) => _ResultsList(
+                    books: books,
+                    query: _currentQuery,
+                  ),
                   BooksError(:final message) => Center(
                     child: Text(
                       message,
@@ -128,7 +152,8 @@ class _BookSearchSectionState extends State<BookSearchSection>
 
 class _ResultsList extends StatelessWidget {
   final List<Book> books;
-  const _ResultsList({required this.books});
+  final String query;
+  const _ResultsList({required this.books, required this.query});
   @override
   Widget build(BuildContext context) {
     if (books.isEmpty) return const Text('Sin resultados');
@@ -161,7 +186,19 @@ class _ResultsList extends StatelessWidget {
                   )
                   : const Icon(Icons.menu_book),
           title: Text(b.title),
-          onTap: () => showBookDetailsSheet(context, b),
+          onTap: () async {
+            // Log del término + selección de libro
+            try {
+              await SupabaseInit.client.rpc(
+                'log_search',
+                params: {
+                  'p_q': query.isEmpty ? null : query,
+                  'p_book_id': b.id,
+                },
+              );
+            } catch (_) {}
+            await showBookDetailsSheet(context, b);
+          },
           subtitle: Text(b.authorsLabel),
           trailing:
               userId == null

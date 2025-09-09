@@ -11,6 +11,9 @@ alter table public.book_categories enable row level security;
 alter table public.favorites enable row level security;
 alter table public.synonyms enable row level security;
 alter table public.nationalities enable row level security;
+alter table if exists public.search_events enable row level security;
+alter table if exists public.book_views enable row level security;
+alter table if exists public.book_stats_daily enable row level security;
 
 -- helper: role from user_profiles
 create or replace function public.current_role() returns text language sql stable as $$
@@ -194,3 +197,6 @@ grant select, insert, update, delete on public.books to anon, authenticated;
 -- funciones RPC
 grant execute on function public.books_suggestions(text, int) to anon, authenticated;
 grant execute on function public.search_books(text, jsonb, int, int, text) to anon, authenticated;
+grant execute on function public.log_search(text, uuid) to anon, authenticated;
+grant execute on function public.log_book_view(uuid) to anon, authenticated;
+grant execute on function public.get_popular_books(text, int, int, text) to anon, authenticated;
