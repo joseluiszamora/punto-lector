@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import '../../auth/state/auth_bloc.dart';
 import '../../../core/routing/app_router.dart' as r;
-import '../../../data/models/user_role.dart';
+import '../../../data/models/app_user.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -102,58 +102,44 @@ class _ProfilePageState extends State<ProfilePage> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return BlocListener<AuthBloc, AuthState>(
-      listenWhen: (prev, curr) => curr is Unauthenticated,
-      listener: (ctx, state) {
-        Navigator.of(
-          ctx,
-        ).pushNamedAndRemoveUntil(r.AppRoutes.login, (route) => false);
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Perfil'),
-          actions: [
-            if (!_loading)
-              IconButton(
-                icon: Icon(_editing ? Icons.close : Icons.edit),
-                tooltip: _editing ? 'Cancelar' : 'Editar',
-                onPressed: () => setState(() => _editing = !_editing),
-              ),
-          ],
+  Widget _buildEditForm(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => setState(() => _editing = false),
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(16),
-          child: BlocBuilder<AuthBloc, AuthState>(
-            builder: (context, authState) {
-              if (authState is! Authenticated) {
-                return const Text('No has iniciado sesión');
-              }
-              final user = authState.user;
-              if (_loading)
-                return const Center(child: CircularProgressIndicator());
-
-              if (_editing) {
-                return Form(
-                  key: _formKey,
+        title: const Text(
+          'Editar Perfil',
+          style: TextStyle(color: Colors.black),
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       TextFormField(
                         controller: _firstCtrl,
-                        decoration: const InputDecoration(labelText: 'Nombre'),
-                        validator:
-                            (v) =>
-                                (v == null || v.trim().isEmpty)
-                                    ? 'Requerido'
-                                    : null,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _lastCtrl,
                         decoration: const InputDecoration(
-                          labelText: 'Apellido',
+                          labelText: 'Nombre',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
                         ),
                         validator:
                             (v) =>
@@ -161,10 +147,31 @@ class _ProfilePageState extends State<ProfilePage> {
                                     ? 'Requerido'
                                     : null,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _lastCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Apellido',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
+                        ),
+                        validator:
+                            (v) =>
+                                (v == null || v.trim().isEmpty)
+                                    ? 'Requerido'
+                                    : null,
+                      ),
+                      const SizedBox(height: 20),
                       DropdownButtonFormField<String>(
                         value: _nationalityId,
                         isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Nacionalidad',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
+                        ),
                         items:
                             _nationalities
                                 .map(
@@ -183,6 +190,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                               n['flag_url'] as String,
                                               width: 24,
                                               height: 18,
+                                              errorBuilder:
+                                                  (_, __, ___) =>
+                                                      const SizedBox(),
                                             ),
                                           ),
                                         Flexible(
@@ -194,104 +204,336 @@ class _ProfilePageState extends State<ProfilePage> {
                                 )
                                 .toList(),
                         onChanged: (v) => setState(() => _nationalityId = v),
-                        decoration: const InputDecoration(
-                          labelText: 'Nacionalidad',
-                        ),
                         validator:
                             (v) =>
                                 (v == null || v.isEmpty) ? 'Requerido' : null,
                       ),
-                      const SizedBox(height: 24),
-                      Row(
-                        children: [
-                          ElevatedButton(
-                            onPressed: _save,
-                            child: const Text('Guardar'),
+                      const SizedBox(height: 32),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _save,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2D3E50),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                          const SizedBox(width: 12),
-                          OutlinedButton(
-                            onPressed: () => setState(() => _editing = false),
-                            child: const Text('Cancelar'),
+                          child: const Text(
+                            'Guardar',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileView(BuildContext context, AppUser user) {
+    return CustomScrollView(
+      slivers: [
+        // Header colorido
+        SliverAppBar(
+          expandedHeight: 200,
+          pinned: false,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+          flexibleSpace: FlexibleSpaceBar(
+            background: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFFFF6B6B), // Rojo
+                    Color(0xFF4ECDC4), // Cyan
+                    Color(0xFFFFD93D), // Amarillo
+                    Color(0xFF6BCF7F), // Verde
+                  ],
+                  stops: [0.0, 0.33, 0.66, 1.0],
+                ),
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black.withOpacity(0.1)],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        // Contenido principal
+        SliverToBoxAdapter(
+          child: Transform.translate(
+            offset: const Offset(0, -60),
+            child: Column(
+              children: [
+                // Avatar centrado con badge de edición
+                Stack(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                );
-              }
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 28,
-                        backgroundImage:
-                            user.avatarUrl != null && user.avatarUrl!.isNotEmpty
-                                ? NetworkImage(user.avatarUrl!)
-                                : null,
-                        child:
-                            (user.avatarUrl == null || user.avatarUrl!.isEmpty)
-                                ? const Icon(Icons.person_outline)
-                                : null,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              user.email,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            if (_firstName != null || _lastName != null)
-                              Text(
-                                [
-                                  if (_firstName != null &&
-                                      _firstName!.isNotEmpty)
-                                    _firstName!,
-                                  if (_lastName != null &&
-                                      _lastName!.isNotEmpty)
-                                    _lastName!,
-                                ].join(' '),
-                              ),
-                          ],
+                      child: CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Colors.white,
+                        child: CircleAvatar(
+                          radius: 46,
+                          backgroundImage:
+                              user.avatarUrl != null &&
+                                      user.avatarUrl!.isNotEmpty
+                                  ? NetworkImage(user.avatarUrl!)
+                                  : null,
+                          backgroundColor: Colors.grey[200],
+                          child:
+                              (user.avatarUrl == null ||
+                                      user.avatarUrl!.isEmpty)
+                                  ? Icon(
+                                    Icons.person,
+                                    size: 40,
+                                    color: Colors.grey[600],
+                                  )
+                                  : null,
                         ),
                       ),
-                    ],
+                    ),
+                    // Badge de edición
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: GestureDetector(
+                        onTap: () => setState(() => _editing = true),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF2D3E50),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.edit,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                // Tarjeta principal
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        children: [
+                          _buildProfileField(
+                            'First Name',
+                            _firstName?.isNotEmpty == true
+                                ? _firstName!
+                                : 'No disponible',
+                            null,
+                          ),
+                          const SizedBox(height: 16),
+                          _buildProfileField(
+                            'Last Name',
+                            _lastName?.isNotEmpty == true
+                                ? _lastName!
+                                : 'No disponible',
+                            null,
+                          ),
+                          const SizedBox(height: 16),
+                          _buildProfileField('Email', user.email, null),
+                          const SizedBox(height: 16),
+                          _buildProfileField(
+                            'Nacionalidad',
+                            _nationalityName ?? 'No especificada',
+                            null,
+                            flagUrl: _nationalityFlag,
+                          ),
+                          const SizedBox(height: 16),
+                          _buildProfileField(
+                            'Birth',
+                            'No especificado',
+                            Icons.arrow_forward_ios,
+                          ),
+                          const SizedBox(height: 16),
+                          _buildProfileField(
+                            'Gender',
+                            'No especificado',
+                            Icons.arrow_forward_ios,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  if (_nationalityName != null)
-                    Row(
-                      children: [
-                        if (_nationalityFlag != null &&
-                            _nationalityFlag!.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8.0),
-                            child: Image.network(
-                              _nationalityFlag!,
-                              width: 24,
-                              height: 18,
+                ),
+                const SizedBox(height: 24),
+                // Botones de acción
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            // TODO: Implementar cambio de contraseña
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Función no implementada'),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.lock),
+                          label: const Text('Change Password'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2D3E50),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                        Text('Nacionalidad: $_nationalityName'),
-                      ],
-                    ),
-                  const SizedBox(height: 16),
-                  Text('Rol de usuario: ${user.role.asString}'),
-                  const Spacer(),
-                  ElevatedButton(
-                    onPressed:
-                        () => context.read<AuthBloc>().add(
-                          const SignOutRequested(),
                         ),
-                    child: const Text('Cerrar sesión'),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed:
+                              () => context.read<AuthBloc>().add(
+                                const SignOutRequested(),
+                              ),
+                          icon: const Icon(Icons.logout, color: Colors.red),
+                          label: const Text(
+                            'Logout',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            side: const BorderSide(color: Colors.red),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              );
-            },
+                ),
+                const SizedBox(height: 32),
+              ],
+            ),
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileField(
+    String label,
+    String value,
+    IconData? trailing, {
+    String? flagUrl,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            if (flagUrl != null && flagUrl.isNotEmpty) ...[
+              Image.network(
+                flagUrl,
+                width: 24,
+                height: 18,
+                errorBuilder: (_, __, ___) => const SizedBox(),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Expanded(
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+            if (trailing != null)
+              Icon(trailing, size: 16, color: Colors.grey[400]),
+          ],
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<AuthBloc, AuthState>(
+      listenWhen: (prev, curr) => curr is Unauthenticated,
+      listener: (ctx, state) {
+        Navigator.of(
+          ctx,
+        ).pushNamedAndRemoveUntil(r.AppRoutes.login, (route) => false);
+      },
+      child: Scaffold(
+        backgroundColor: Colors.grey[50],
+        body: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, authState) {
+            if (authState is! Authenticated) {
+              return const Center(child: Text('No has iniciado sesión'));
+            }
+            final user = authState.user;
+            if (_loading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (_editing) {
+              return _buildEditForm(context);
+            }
+
+            return _buildProfileView(context, user);
+          },
         ),
       ),
     );

@@ -33,7 +33,7 @@ class RootNavPage extends StatelessWidget {
       // Libros
       const SearchBookPage(),
       // Tiendas (mapa)
-      const StoresMapPage(),
+      // const StoresMapPage(),
       // Mi tienda (administración)
       if (isStoreManager) const MyStorePage(),
       // Favoritos
@@ -52,10 +52,10 @@ class RootNavPage extends StatelessWidget {
         icon: Icon(Icons.menu_book_outlined),
         label: 'Libros',
       ),
-      const BottomNavigationBarItem(
-        icon: Icon(Icons.store_mall_directory_outlined),
-        label: 'Tiendas',
-      ),
+      // const BottomNavigationBarItem(
+      //   icon: Icon(Icons.store_mall_directory_outlined),
+      //   label: 'Tiendas',
+      // ),
       if (isStoreManager)
         const BottomNavigationBarItem(
           icon: Icon(Icons.storefront_outlined),
