@@ -239,221 +239,216 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildProfileView(BuildContext context, AppUser user) {
-    return CustomScrollView(
-      slivers: [
-        // Header colorido
-        SliverAppBar(
-          expandedHeight: 200,
-          pinned: false,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
+    final avatar = Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          height: 210,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFFFF6B6B),
+                Color(0xFF4ECDC4),
+                Color(0xFFFFD93D),
+                Color(0xFF6BCF7F),
+              ],
+              stops: [0.0, 0.33, 0.66, 1.0],
+            ),
           ),
-          flexibleSpace: FlexibleSpaceBar(
-            background: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFFFF6B6B), // Rojo
-                    Color(0xFF4ECDC4), // Cyan
-                    Color(0xFFFFD93D), // Amarillo
-                    Color(0xFF6BCF7F), // Verde
-                  ],
-                  stops: [0.0, 0.33, 0.66, 1.0],
-                ),
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withOpacity(0.1)],
-                  ),
-                ),
+          child: SafeArea(
+            bottom: false,
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
               ),
             ),
           ),
         ),
-        // Contenido principal
-        SliverToBoxAdapter(
-          child: Transform.translate(
-            offset: const Offset(0, -60),
-            child: Column(
+        Positioned(
+          bottom: -60,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: Stack(
+              clipBehavior: Clip.none,
               children: [
-                // Avatar centrado con badge de edición
-                Stack(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: CircleAvatar(
-                        radius: 50,
-                        backgroundColor: Colors.white,
-                        child: CircleAvatar(
-                          radius: 46,
-                          backgroundImage:
-                              user.avatarUrl != null &&
-                                      user.avatarUrl!.isNotEmpty
-                                  ? NetworkImage(user.avatarUrl!)
-                                  : null,
-                          backgroundColor: Colors.grey[200],
-                          child:
-                              (user.avatarUrl == null ||
-                                      user.avatarUrl!.isEmpty)
-                                  ? Icon(
-                                    Icons.person,
-                                    size: 40,
-                                    color: Colors.grey[600],
-                                  )
-                                  : null,
-                        ),
-                      ),
-                    ),
-                    // Badge de edición
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: GestureDetector(
-                        onTap: () => setState(() => _editing = true),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF2D3E50),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.edit,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                // Tarjeta principal
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        children: [
-                          _buildProfileField(
-                            'First Name',
-                            _firstName?.isNotEmpty == true
-                                ? _firstName!
-                                : 'No disponible',
-                            null,
-                          ),
-                          const SizedBox(height: 16),
-                          _buildProfileField(
-                            'Last Name',
-                            _lastName?.isNotEmpty == true
-                                ? _lastName!
-                                : 'No disponible',
-                            null,
-                          ),
-                          const SizedBox(height: 16),
-                          _buildProfileField('Email', user.email, null),
-                          const SizedBox(height: 16),
-                          _buildProfileField(
-                            'Nacionalidad',
-                            _nationalityName ?? 'No especificada',
-                            null,
-                            flagUrl: _nationalityFlag,
-                          ),
-                          const SizedBox(height: 16),
-                          _buildProfileField(
-                            'Birth',
-                            'No especificado',
-                            Icons.arrow_forward_ios,
-                          ),
-                          const SizedBox(height: 16),
-                          _buildProfileField(
-                            'Gender',
-                            'No especificado',
-                            Icons.arrow_forward_ios,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Botones de acción
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    children: [
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            // TODO: Implementar cambio de contraseña
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Función no implementada'),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.lock),
-                          label: const Text('Change Password'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2D3E50),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed:
-                              () => context.read<AuthBloc>().add(
-                                const SignOutRequested(),
-                              ),
-                          icon: const Icon(Icons.logout, color: Colors.red),
-                          label: const Text(
-                            'Logout',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            side: const BorderSide(color: Colors.red),
-                          ),
-                        ),
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.12),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
                       ),
                     ],
                   ),
+                  child: CircleAvatar(
+                    radius: 54,
+                    backgroundColor: Colors.white,
+                    child: CircleAvatar(
+                      radius: 50,
+                      backgroundImage:
+                          user.avatarUrl != null && user.avatarUrl!.isNotEmpty
+                              ? NetworkImage(user.avatarUrl!)
+                              : null,
+                      backgroundColor: Colors.grey[200],
+                      child:
+                          (user.avatarUrl == null || user.avatarUrl!.isEmpty)
+                              ? Icon(
+                                Icons.person,
+                                size: 46,
+                                color: Colors.grey[600],
+                              )
+                              : null,
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 32),
+                // Positioned(
+                //   right: 4,
+                //   bottom: 4,
+                //   child: GestureDetector(
+                //     onTap: () => setState(() => _editing = true),
+                //     child: Container(
+                //       padding: const EdgeInsets.all(8),
+                //       decoration: BoxDecoration(
+                //         color: Colors.black.withOpacity(0.85),
+                //         shape: BoxShape.circle,
+                //       ),
+                //       child: const Icon(
+                //         Icons.edit,
+                //         size: 16,
+                //         color: Colors.white,
+                //       ),
+                //     ),
+                //   ),
+                // ),
               ],
             ),
+          ),
+        ),
+      ],
+    );
+
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(child: avatar),
+        SliverToBoxAdapter(
+          child: Column(
+            children: [
+              const SizedBox(height: 80), // espacio para el avatar superpuesto
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                  color: Colors.white,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
+                    child: Column(
+                      children: [
+                        _buildProfileField(
+                          'First Name',
+                          _firstName?.isNotEmpty == true
+                              ? _firstName!
+                              : 'No disponible',
+                          null,
+                        ),
+                        const SizedBox(height: 20),
+                        _buildProfileField(
+                          'Last Name',
+                          _lastName?.isNotEmpty == true
+                              ? _lastName!
+                              : 'No disponible',
+                          null,
+                        ),
+                        const SizedBox(height: 20),
+                        _buildProfileField('Email', user.email, null),
+                        const SizedBox(height: 20),
+                        _buildProfileField(
+                          'Nacionalidad',
+                          _nationalityName ?? 'No especificada',
+                          null,
+                          flagUrl: _nationalityFlag,
+                        ),
+                        const SizedBox(height: 20),
+                        _buildProfileField(
+                          'Birth',
+                          'No especificado',
+                          Icons.arrow_forward_ios,
+                        ),
+                        const SizedBox(height: 20),
+                        _buildProfileField(
+                          'Gender',
+                          'No especificado',
+                          Icons.arrow_forward_ios,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 28),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          setState(() => _editing = true);
+                          // ScaffoldMessenger.of(context).showSnackBar(
+                          //   const SnackBar(
+                          //     content: Text('Función no implementada'),
+                          //   ),
+                          // );
+                        },
+                        icon: const Icon(Icons.edit),
+                        label: const Text('Editar Datos'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2D3E50),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed:
+                            () => context.read<AuthBloc>().add(
+                              const SignOutRequested(),
+                            ),
+                        icon: const Icon(Icons.logout, color: Colors.red),
+                        label: const Text(
+                          'Salir',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          side: const BorderSide(color: Colors.red),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ],

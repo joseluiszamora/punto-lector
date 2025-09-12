@@ -5,7 +5,7 @@ import 'package:puntolector/core/supabase/supabase_client_provider.dart';
 import 'package:puntolector/data/repositories/favorites_repository.dart';
 import '../application/books_bloc.dart';
 import '../../../data/models/book.dart';
-import 'book_details_sheet.dart';
+import 'book_detail_page.dart';
 
 class BookSearchSection extends StatefulWidget {
   const BookSearchSection({super.key});
@@ -197,7 +197,9 @@ class _ResultsList extends StatelessWidget {
                 },
               );
             } catch (_) {}
-            await showBookDetailsSheet(context, b);
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => BookDetailPage(book: b)),
+            );
           },
           subtitle: Text(b.authorsLabel),
           trailing:

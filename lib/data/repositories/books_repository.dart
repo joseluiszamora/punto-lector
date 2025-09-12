@@ -26,6 +26,9 @@ class BooksRepository implements IBooksRepository {
   String _selectWithRelations() =>
       '*, books_authors(authors(*)), book_categories(categories(*))';
 
+  String _selectWithFullRelations() =>
+      'id, title, cover_url, summary, review, isbn, language, published_at, books_authors(authors(*)), book_categories(categories(*))';
+
   @override
   Future<List<Book>> search({
     String? title,
@@ -34,7 +37,7 @@ class BooksRepository implements IBooksRepository {
   }) async {
     final res = await _client
         .from('books')
-        .select(_selectWithRelations())
+        .select(_selectWithFullRelations())
         .limit(500);
     final List raw = (res as List);
     var books =
@@ -63,7 +66,7 @@ class BooksRepository implements IBooksRepository {
   Future<List<Book>> listAll({int limit = 500}) async {
     final res = await _client
         .from('books')
-        .select(_selectWithRelations())
+        .select(_selectWithFullRelations())
         .order('title')
         .limit(limit);
     final List raw = (res as List);
@@ -101,7 +104,7 @@ class BooksRepository implements IBooksRepository {
     final res =
         await _client
             .from('books')
-            .select(_selectWithRelations())
+            .select(_selectWithFullRelations())
             .eq('id', id)
             .single();
     return Book.fromMap(Map<String, dynamic>.from(res as Map));

@@ -3,7 +3,7 @@ import 'package:puntolector/core/supabase/supabase_client_provider.dart';
 import 'package:puntolector/data/repositories/favorites_repository.dart';
 import 'package:puntolector/data/models/book.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:puntolector/features/books/presentation/book_details_sheet.dart';
+import 'package:puntolector/features/books/presentation/book_detail_page.dart';
 
 class FavoritesPage extends StatelessWidget {
   const FavoritesPage({super.key});
@@ -154,7 +154,13 @@ class _FavoritesListState extends State<_FavoritesList> {
                         : const Icon(Icons.menu_book),
                 title: Text(b.title),
                 subtitle: Text(b.authorsLabel),
-                onTap: () => showBookDetailsSheet(context, b),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => BookDetailPage(book: b),
+                    ),
+                  );
+                },
                 trailing: IconButton(
                   icon: const Icon(Icons.favorite),
                   color: Colors.red,

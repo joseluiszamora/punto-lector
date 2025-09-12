@@ -8,6 +8,9 @@ class Book {
   final List<Category> categories; // M:N
   final String? coverUrl;
   final String? summary;
+  final String? review;
+  final String? isbn;
+  final String? language;
   final DateTime? publishedAt;
 
   const Book({
@@ -17,6 +20,9 @@ class Book {
     this.categories = const [],
     this.coverUrl,
     this.summary,
+    this.review,
+    this.isbn,
+    this.language,
     this.publishedAt,
   });
 
@@ -67,6 +73,9 @@ class Book {
       categories: parsedCategories,
       coverUrl: map['cover_url'] as String?,
       summary: map['summary'] as String?,
+      review: map['review'] as String?,
+      isbn: map['isbn'] as String?,
+      language: map['language'] as String?,
       publishedAt:
           map['published_at'] != null
               ? DateTime.tryParse(map['published_at'].toString())
@@ -79,6 +88,9 @@ class Book {
     'title': title,
     'cover_url': coverUrl,
     'summary': summary,
+    'review': review,
+    'isbn': isbn,
+    'language': language,
     'published_at': publishedAt?.toIso8601String(),
   }..removeWhere((k, v) => v == null);
 
@@ -91,6 +103,9 @@ class Book {
     List<Category>? categories,
     String? coverUrl,
     String? summary,
+    String? review,
+    String? isbn,
+    String? language,
     DateTime? publishedAt,
   }) => Book(
     id: id ?? this.id,
@@ -99,6 +114,9 @@ class Book {
     categories: categories ?? this.categories,
     coverUrl: coverUrl ?? this.coverUrl,
     summary: summary ?? this.summary,
+    review: review ?? this.review,
+    isbn: isbn ?? this.isbn,
+    language: language ?? this.language,
     publishedAt: publishedAt ?? this.publishedAt,
   );
 }

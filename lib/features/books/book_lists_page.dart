@@ -7,6 +7,7 @@ import '../auth/state/auth_bloc.dart';
 import '../../data/models/author.dart';
 import '../../data/repositories/authors_repository.dart';
 import '../../data/repositories/books_repository.dart';
+import 'presentation/book_detail_page.dart';
 
 class BookListsPage extends StatefulWidget {
   const BookListsPage({super.key});
@@ -314,39 +315,54 @@ class _BookCardSmall extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 120,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AspectRatio(
-            aspectRatio: 3 / 4,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child:
-                  book.coverUrl != null && book.coverUrl!.isNotEmpty
-                      ? Image.network(book.coverUrl!, fit: BoxFit.cover)
-                      : Container(
-                        color: Colors.grey.shade300,
-                        child: const Icon(Icons.menu_book_outlined, size: 40),
-                      ),
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => BookDetailPage(book: book)),
+        );
+      },
+      child: SizedBox(
+        width: 120,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Hero(
+                tag: 'book-${book.id}',
+                child: AspectRatio(
+                  aspectRatio: 3 / 4,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child:
+                        book.coverUrl != null && book.coverUrl!.isNotEmpty
+                            ? Image.network(book.coverUrl!, fit: BoxFit.cover)
+                            : Container(
+                              color: Colors.grey.shade300,
+                              child: const Icon(
+                                Icons.menu_book_outlined,
+                                size: 40,
+                              ),
+                            ),
+                  ),
+                ),
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            book.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            book.authorsLabel,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-          ),
-        ],
+            const SizedBox(height: 6),
+            Text(
+              book.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              book.authorsLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -518,44 +534,56 @@ class _FavoritesAllGridPageState extends State<FavoritesAllGridPage> {
                   itemCount: _books.length,
                   itemBuilder: (context, index) {
                     final b = _books[index];
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child:
-                                b.coverUrl != null && b.coverUrl!.isNotEmpty
-                                    ? Image.network(
-                                      b.coverUrl!,
-                                      fit: BoxFit.cover,
-                                    )
-                                    : Container(
-                                      color: Colors.grey.shade300,
-                                      child: const Icon(
-                                        Icons.menu_book_outlined,
-                                        size: 40,
-                                      ),
-                                    ),
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => BookDetailPage(book: b),
                           ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          b.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        Text(
-                          b.authorsLabel,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 12,
+                        );
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Hero(
+                              tag: 'book-${b.id}',
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child:
+                                    b.coverUrl != null && b.coverUrl!.isNotEmpty
+                                        ? Image.network(
+                                          b.coverUrl!,
+                                          fit: BoxFit.cover,
+                                        )
+                                        : Container(
+                                          color: Colors.grey.shade300,
+                                          child: const Icon(
+                                            Icons.menu_book_outlined,
+                                            size: 40,
+                                          ),
+                                        ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 6),
+                          Text(
+                            b.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          Text(
+                            b.authorsLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
                     );
                   },
                 ),
@@ -617,44 +645,57 @@ class _PopularBooksAllPageState extends State<PopularBooksAllPage> {
                   itemCount: _books.length,
                   itemBuilder: (c, i) {
                     final b = _books[i];
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child:
-                                (b.coverUrl != null && b.coverUrl!.isNotEmpty)
-                                    ? Image.network(
-                                      b.coverUrl!,
-                                      fit: BoxFit.cover,
-                                    )
-                                    : Container(
-                                      color: Colors.grey.shade300,
-                                      child: const Icon(
-                                        Icons.menu_book_outlined,
-                                        size: 40,
-                                      ),
-                                    ),
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => BookDetailPage(book: b),
                           ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          b.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        Text(
-                          b.authorsLabel,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 12,
+                        );
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Hero(
+                              tag: 'book-${b.id}',
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child:
+                                    (b.coverUrl != null &&
+                                            b.coverUrl!.isNotEmpty)
+                                        ? Image.network(
+                                          b.coverUrl!,
+                                          fit: BoxFit.cover,
+                                        )
+                                        : Container(
+                                          color: Colors.grey.shade300,
+                                          child: const Icon(
+                                            Icons.menu_book_outlined,
+                                            size: 40,
+                                          ),
+                                        ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 6),
+                          Text(
+                            b.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          Text(
+                            b.authorsLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
                     );
                   },
                 ),
