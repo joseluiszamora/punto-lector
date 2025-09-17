@@ -10,6 +10,16 @@ Ejecuta en este orden:
 4. `seed.sql`
 5. `synonyms_seed.sql` (opcional)
 
+### Nuevas migraciones (categorías jerárquicas)
+
+Para actualizar a la estructura jerárquica de categorías, ejecuta después del orden anterior:
+
+6. `migration_categories_hierarchy.sql` - Migración para estructura jerárquica
+7. `categories_hierarchy_rpc.sql` - Funciones RPC para categorías jerárquicas
+8. `seed_categories_hierarchy.sql` - Datos de ejemplo con categorías jerárquicas
+
+**Importante:** Si ya tienes datos en la tabla `categories`, la migración preservará los registros existentes y los marcará como categorías principales (level = 0).
+
 Si se agregó antes algún policy, puedes limpiarlo con:
 
 ```
@@ -26,6 +36,63 @@ drop policy if exists listings_select on public.listings;
 drop policy if exists listings_cud on public.listings;
 drop policy if exists offers_select on public.offers;
 drop policy if exists offers_cud on public.offers;
+```
+
+## Nuevas funciones RPC (categorías jerárquicas)
+
+Después de ejecutar las migraciones de categorías, tendrás acceso a estas funciones:
+
+### 1. `get_categories_tree()`
+
+Devuelve el árbol completo de categorías con información jerárquica:
+
+- `id`, `name`, `description`, `color`, `parent_id`, `level`, `sort_order`
+- `children_count`: número de subcategorías
+- `book_count`: número de libros en la categoría
+- `full_path`: ruta completa (ej: "Historia > Historia Boliviana")
+
+```sql
+SELECT * FROM public.get_categories_tree();
+```
+
+### 2. `get_categories_by_level(target_level, parent_category_id)`
+
+Obtiene categorías por nivel específico:
+
+- `target_level`: 0 = principales, 1 = subcategorías, etc.
+- `parent_category_id`: UUID del padre (opcional)
+
+```sql
+-- Obtener categorías principales
+SELECT * FROM public.get_categories_by_level(0);
+
+-- Obtener subcategorías de una categoría específica
+SELECT * FROM public.get_categories_by_level(1, 'uuid-categoria-padre');
+```
+
+### 3. `get_category_path(category_id)`
+
+Devuelve la ruta de breadcrumbs de una categoría:
+
+```sql
+SELECT * FROM public.get_category_path('uuid-categoria');
+```
+
+### 4. `search_categories_hierarchy(search_term, include_children)`
+
+Búsqueda inteligente en categorías jerárquicas:
+
+```sql
+SELECT * FROM public.search_categories_hierarchy('historia', true);
+```
+
+### 5. `get_books_by_category(category_id, include_subcategories, limit_count, offset_count)`
+
+Obtiene libros de una categoría, opcionalmente incluyendo subcategorías:
+
+```sql
+-- Libros de una categoría incluyendo subcategorías
+SELECT * FROM public.get_books_by_category('uuid-categoria', true, 20, 0);
 ```
 
 ---
@@ -48,6 +115,8 @@ El proyecto implementa búsqueda avanzada combinando:
 
 ### RPCs disponibles
 
+**Búsquedas generales:**
+
 1. `public.books_suggestions(q text, lim int default 10)`
 
    - Devuelve sugerencias de: títulos de libros, autores, categorías y sinónimos.
@@ -58,6 +127,8 @@ El proyecto implementa búsqueda avanzada combinando:
    - Devuelve resultados de libros con metainformación y score de relevancia.
    - Campos: `book_id, title, cover_url, authors[], categories[], published_at, score, listings_count, min_price, has_stock`.
    - Lógica: ranking = FTS (`to_tsvector('public.es_unaccent', ...)` vs `plainto_tsquery('public.es_unaccent', q)`) combinado con trigram sobre `title`.
+
+**Categorías jerárquicas:** (ver sección anterior)
 
 ### Filtros soportados (filters jsonb)
 
@@ -100,10 +171,24 @@ Ejemplo de `filters`:
 
 ---
 
-## Consumo desde el cliente
+### Consumo desde el cliente
+
+**Búsquedas tradicionales:**
 
 - Sugerencias (autocomplete): llamar a `rpc('books_suggestions', { q, lim })`.
 - Resultados: `rpc('search_books', { q, filters, page, page_size, sort })`.
-- Notas:
-  - Para búsquedas acentuadas/diacríticas, la normalización elimina tildes.
-  - Si `q` es vacío, se devuelven resultados sin filtrar por texto (solo filtros/ordenación).
+
+**Categorías jerárquicas (Flutter):**
+
+- Árbol completo: `rpc('get_categories_tree')`
+- Por nivel: `rpc('get_categories_by_level', { target_level, parent_category_id })`
+- Búsqueda: `rpc('search_categories_hierarchy', { search_term, include_children })`
+- Breadcrumbs: `rpc('get_category_path', { category_id })`
+- Libros por categoría: `rpc('get_books_by_category', { category_id, include_subcategories, limit_count, offset_count })`
+
+**Notas:**
+
+- Para búsquedas acentuadas/diacríticas, la normalización elimina tildes.
+- Si `q` es vacío, se devuelven resultados sin filtrar por texto (solo filtros/ordenación).
+- Las categorías jerárquicas soportan hasta 10 niveles de profundidad.
+- La integridad referencial está protegida contra referencias circulares.

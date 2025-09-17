@@ -30,7 +30,7 @@ class _CategoriesCubit extends Cubit<_CategoriesState> {
   Future<void> load() async {
     emit(const _CategoriesState.loading());
     try {
-      final items = await repo.listAll();
+      final items = await repo.getCategoriesTree();
       _itemsCache = items;
       emit(_CategoriesState.loaded(items));
     } catch (e) {
@@ -38,11 +38,24 @@ class _CategoriesCubit extends Cubit<_CategoriesState> {
     }
   }
 
-  Future<void> create(String name, {String? color}) async {
+  Future<void> create(
+    String name, {
+    String? description,
+    String? color,
+    String? parentId,
+    int level = 0,
+    int sortOrder = 0,
+  }) async {
     emit(const _CategoriesState.operating());
     try {
-      await repo.create(name: name, color: color);
-      // Notificar éxito primero y luego recargar para que el último estado sea Loaded
+      await repo.create(
+        name: name,
+        description: description,
+        color: color,
+        parentId: parentId,
+        level: level,
+        sortOrder: sortOrder,
+      );
       emit(const _CategoriesState.operationSuccess());
       await load();
     } catch (e) {
@@ -50,10 +63,26 @@ class _CategoriesCubit extends Cubit<_CategoriesState> {
     }
   }
 
-  Future<void> update(String id, String name, {String? color}) async {
+  Future<void> update(
+    String id,
+    String name, {
+    String? description,
+    String? color,
+    String? parentId,
+    int? level,
+    int? sortOrder,
+  }) async {
     emit(const _CategoriesState.operating());
     try {
-      await repo.update(id, name: name, color: color);
+      await repo.update(
+        id,
+        name: name,
+        description: description,
+        color: color,
+        parentId: parentId,
+        level: level,
+        sortOrder: sortOrder,
+      );
       emit(const _CategoriesState.operationSuccess());
       await load();
     } catch (e) {
@@ -104,8 +133,16 @@ class _Loaded extends _CategoriesState {
   const _Loaded(this.items);
 }
 
-class _CategoriesView extends StatelessWidget {
+class _CategoriesView extends StatefulWidget {
   const _CategoriesView();
+
+  @override
+  State<_CategoriesView> createState() => _CategoriesViewState();
+}
+
+class _CategoriesViewState extends State<_CategoriesView> {
+  final Set<String> _expandedCategories = {};
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -137,46 +174,50 @@ class _CategoriesView extends StatelessWidget {
           }
         },
         builder: (context, state) {
-          // Helper para construir la lista con items (desde estado o cache)
-          Widget buildList(List<Category> items) {
-            if (items.isEmpty)
+          // Helper para construir la lista jerárquica
+          Widget buildHierarchicalList(List<Category> categories) {
+            if (categories.isEmpty) {
               return const Center(child: Text('Sin categorías'));
-            return ListView.separated(
-              itemCount: items.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (ctx, i) {
-                final c = items[i];
-                return ListTile(
-                  leading: _ColorDot(hex: c.color),
-                  title: Text(c.name),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () => _openForm(ctx, category: c),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () => _confirmDelete(ctx, c),
-                      ),
-                    ],
-                  ),
+            }
+
+            // Agrupar categorías por padre
+            final mainCategories =
+                categories.where((c) => c.isMainCategory).toList();
+            final subcategoriesMap = <String, List<Category>>{};
+
+            for (final cat in categories.where((c) => c.isSubcategory)) {
+              if (cat.parentId != null) {
+                subcategoriesMap.putIfAbsent(cat.parentId!, () => []).add(cat);
+              }
+            }
+
+            // Ordenar categorías
+            mainCategories.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+            for (final subcats in subcategoriesMap.values) {
+              subcats.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+            }
+
+            return ListView.builder(
+              itemCount: _calculateTotalItems(mainCategories, subcategoriesMap),
+              itemBuilder: (context, index) {
+                return _buildHierarchicalItem(
+                  mainCategories,
+                  subcategoriesMap,
+                  index,
                 );
               },
             );
           }
 
           if (state is _Loaded) {
-            return buildList(state.items);
+            return buildHierarchicalList(state.items);
           }
           if (state is _Loading) {
             return const Center(child: CircularProgressIndicator());
           }
-          // En Operating u OperationSuccess mostramos la lista desde cache para evitar parpadeo
           if (state is _Operating || state is _OperationSuccess) {
             final cached = context.read<_CategoriesCubit>().items;
-            return buildList(cached);
+            return buildHierarchicalList(cached);
           }
           if (state is _Error) {
             final msg = state.message.replaceFirst('Exception: ', '');
@@ -190,21 +231,187 @@ class _CategoriesView extends StatelessWidget {
     );
   }
 
-  Future<void> _openForm(BuildContext context, {Category? category}) async {
-    final result = await showDialog<_CategoryFormResult>(
+  int _calculateTotalItems(
+    List<Category> mainCategories,
+    Map<String, List<Category>> subcategoriesMap,
+  ) {
+    int total = mainCategories.length;
+    for (final mainCat in mainCategories) {
+      if (_expandedCategories.contains(mainCat.id)) {
+        total += subcategoriesMap[mainCat.id]?.length ?? 0;
+      }
+    }
+    return total;
+  }
+
+  Widget _buildHierarchicalItem(
+    List<Category> mainCategories,
+    Map<String, List<Category>> subcategoriesMap,
+    int flatIndex,
+  ) {
+    int currentIndex = 0;
+
+    for (final mainCat in mainCategories) {
+      if (currentIndex == flatIndex) {
+        return _buildCategoryTile(mainCat, level: 0);
+      }
+      currentIndex++;
+
+      if (_expandedCategories.contains(mainCat.id)) {
+        final subcats = subcategoriesMap[mainCat.id] ?? [];
+        for (final subcat in subcats) {
+          if (currentIndex == flatIndex) {
+            return _buildCategoryTile(subcat, level: 1);
+          }
+          currentIndex++;
+        }
+      }
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildCategoryTile(Category category, {required int level}) {
+    final hasSubcategories = category.hasChildren;
+    final isExpanded = _expandedCategories.contains(category.id);
+
+    return Card(
+      margin: EdgeInsets.symmetric(
+        horizontal: 8.0 + (level * 16.0),
+        vertical: 2.0,
+      ),
+      child: ListTile(
+        leading: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (hasSubcategories && level == 0)
+              IconButton(
+                icon: Icon(
+                  isExpanded ? Icons.expand_less : Icons.expand_more,
+                  color: Colors.grey[600],
+                ),
+                onPressed: () {
+                  setState(() {
+                    if (isExpanded) {
+                      _expandedCategories.remove(category.id);
+                    } else {
+                      _expandedCategories.add(category.id);
+                    }
+                  });
+                },
+              )
+            else if (level > 0)
+              Icon(
+                Icons.subdirectory_arrow_right,
+                color: Colors.grey[500],
+                size: 20,
+              ),
+            _ColorDot(hex: category.color),
+          ],
+        ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                category.name,
+                style: TextStyle(
+                  fontWeight: level == 0 ? FontWeight.w600 : FontWeight.w500,
+                  fontSize: level == 0 ? 16 : 14,
+                ),
+              ),
+            ),
+            if (category.hasChildren)
+              _Badge(
+                text: category.childrenCount.toString(),
+                color: Colors.green,
+                tooltip: 'Subcategorías',
+              ),
+            if (category.hasBooks)
+              _Badge(
+                text: category.bookCount.toString(),
+                color: Colors.blue,
+                tooltip: 'Libros',
+              ),
+          ],
+        ),
+        subtitle:
+            category.description != null
+                ? Text(
+                  category.description!,
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                )
+                : null,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (level == 0)
+              IconButton(
+                icon: const Icon(Icons.add, size: 20),
+                onPressed: () => _openForm(context, parentCategory: category),
+                tooltip: 'Agregar subcategoría',
+              ),
+            IconButton(
+              icon: const Icon(Icons.edit, size: 20),
+              onPressed: () => _openForm(context, category: category),
+              tooltip: 'Editar',
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, size: 20),
+              onPressed: () => _confirmDelete(context, category),
+              tooltip: 'Eliminar',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openForm(
+    BuildContext context, {
+    Category? category,
+    Category? parentCategory,
+  }) async {
+    final cubit = context.read<_CategoriesCubit>();
+    final result = await showDialog<_CategoryFormResult?>(
       context: context,
       builder:
-          (ctx) => _CategoryDialog(
-            initialName: category?.name,
-            initialColor: category?.color,
+          (_) => _CategoryDialog(
+            category: category,
+            parentCategory: parentCategory,
+            availableParents:
+                cubit.items
+                    .where(
+                      (c) => c.isMainCategory && c.id != category?.id,
+                    ) // No permitir auto-referencia
+                    .toList(),
           ),
     );
-    if (result == null) return;
-    final cubit = context.read<_CategoriesCubit>();
-    if (category == null) {
-      await cubit.create(result.name, color: result.color);
-    } else {
-      await cubit.update(category.id, result.name, color: result.color);
+
+    if (result != null && context.mounted) {
+      if (category == null) {
+        // Crear nueva categoría
+        await cubit.create(
+          result.name,
+          description: result.description,
+          color: result.color,
+          parentId: result.parentId,
+          level: result.level,
+          sortOrder: result.sortOrder,
+        );
+      } else {
+        // Actualizar categoría existente
+        await cubit.update(
+          category.id,
+          result.name,
+          description: result.description,
+          color: result.color,
+          parentId: result.parentId,
+          level: result.level,
+          sortOrder: result.sortOrder,
+        );
+      }
     }
   }
 
@@ -236,13 +443,32 @@ class _CategoriesView extends StatelessWidget {
 class _CategoryFormResult {
   final String name;
   final String? color;
-  _CategoryFormResult(this.name, this.color);
+  final String? description;
+  final String? parentId;
+  final int level;
+  final int sortOrder;
+
+  _CategoryFormResult({
+    required this.name,
+    this.color,
+    this.description,
+    this.parentId,
+    required this.level,
+    required this.sortOrder,
+  });
 }
 
 class _CategoryDialog extends StatefulWidget {
-  final String? initialName;
-  final String? initialColor;
-  const _CategoryDialog({this.initialName, this.initialColor});
+  final Category? category; // Para editar
+  final Category? parentCategory; // Para crear subcategoría
+  final List<Category> availableParents; // Categorías principales disponibles
+
+  const _CategoryDialog({
+    this.category,
+    this.parentCategory,
+    required this.availableParents,
+  });
+
   @override
   State<_CategoryDialog> createState() => _CategoryDialogState();
 }
@@ -250,19 +476,45 @@ class _CategoryDialog extends StatefulWidget {
 class _CategoryDialogState extends State<_CategoryDialog> {
   final _form = GlobalKey<FormState>();
   late final TextEditingController _name;
+  late final TextEditingController _description;
+  late final TextEditingController _sortOrder;
   String? _colorHex;
+  String? _selectedParentId;
 
   @override
   void initState() {
     super.initState();
-    _name = TextEditingController(text: widget.initialName ?? '');
-    _colorHex = widget.initialColor;
+    _name = TextEditingController(text: widget.category?.name ?? '');
+    _description = TextEditingController(
+      text: widget.category?.description ?? '',
+    );
+    _sortOrder = TextEditingController(
+      text: widget.category?.sortOrder.toString() ?? '0',
+    );
+    _colorHex = widget.category?.color;
+    _selectedParentId = widget.category?.parentId ?? widget.parentCategory?.id;
   }
 
   @override
   void dispose() {
     _name.dispose();
+    _description.dispose();
+    _sortOrder.dispose();
     super.dispose();
+  }
+
+  String get _title {
+    if (widget.category != null) {
+      return 'Editar Categoría';
+    } else if (widget.parentCategory != null) {
+      return 'Nueva Subcategoría';
+    } else {
+      return 'Nueva Categoría';
+    }
+  }
+
+  List<Category> get _availableParents {
+    return widget.availableParents;
   }
 
   // Color utilidades
@@ -335,33 +587,123 @@ class _CategoryDialogState extends State<_CategoryDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(
-        widget.initialName == null ? 'Nueva categoría' : 'Editar categoría',
-      ),
-      content: Form(
-        key: _form,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextFormField(
-              controller: _name,
-              decoration: const InputDecoration(labelText: 'Nombre'),
-              validator:
-                  (v) => v == null || v.trim().isEmpty ? 'Requerido' : null,
-            ),
-            const SizedBox(height: 8),
-            Row(
+      title: Text(_title),
+      content: SizedBox(
+        width: MediaQuery.of(context).size.width * 0.8,
+        child: Form(
+          key: _form,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _ColorDot(hex: _colorHex),
-                const SizedBox(width: 8),
-                OutlinedButton.icon(
-                  onPressed: _pickColor,
-                  icon: const Icon(Icons.color_lens_outlined),
-                  label: const Text('Color'),
+                // Campo Nombre
+                TextFormField(
+                  controller: _name,
+                  decoration: const InputDecoration(
+                    labelText: 'Nombre *',
+                    hintText: 'Historia, Ficción, etc.',
+                  ),
+                  validator:
+                      (v) => v == null || v.trim().isEmpty ? 'Requerido' : null,
+                  textCapitalization: TextCapitalization.words,
+                ),
+                const SizedBox(height: 16),
+
+                // Campo Descripción
+                TextFormField(
+                  controller: _description,
+                  decoration: const InputDecoration(
+                    labelText: 'Descripción',
+                    hintText: 'Descripción opcional de la categoría',
+                  ),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 16),
+
+                // Selector de Padre (solo si hay categorías principales disponibles)
+                if (_availableParents.isNotEmpty &&
+                    widget.category?.isMainCategory != true) ...[
+                  const Text(
+                    'Categoría Padre',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String?>(
+                    value: _selectedParentId,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
+                    hint: const Text('Seleccionar padre (opcional)'),
+                    isExpanded: true,
+                    items: [
+                      const DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text('Sin padre (categoría principal)'),
+                      ),
+                      ..._availableParents.map(
+                        (parent) => DropdownMenuItem<String?>(
+                          value: parent.id,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _ColorDot(hex: parent.color),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  parent.name,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedParentId = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // Campo Orden
+                TextFormField(
+                  controller: _sortOrder,
+                  decoration: const InputDecoration(
+                    labelText: 'Orden',
+                    hintText: '0, 1, 2...',
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return null;
+                    final n = int.tryParse(v.trim());
+                    return n == null ? 'Debe ser un número' : null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Selector de Color
+                Row(
+                  children: [
+                    _ColorDot(hex: _colorHex),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: _pickColor,
+                      icon: const Icon(Icons.color_lens_outlined),
+                      label: const Text('Color'),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
       actions: [
@@ -372,14 +714,66 @@ class _CategoryDialogState extends State<_CategoryDialog> {
         FilledButton(
           onPressed: () {
             if (!_form.currentState!.validate()) return;
+
+            final name = _name.text.trim();
+            final description =
+                _description.text.trim().isNotEmpty
+                    ? _description.text.trim()
+                    : null;
+            final sortOrder = int.tryParse(_sortOrder.text.trim()) ?? 0;
+            final level = _selectedParentId != null ? 1 : 0;
+
             Navigator.pop(
               context,
-              _CategoryFormResult(_name.text.trim(), _colorHex),
+              _CategoryFormResult(
+                name: name,
+                color: _colorHex,
+                description: description,
+                parentId: _selectedParentId,
+                level: level,
+                sortOrder: sortOrder,
+              ),
             );
           },
-          child: const Text('Guardar'),
+          child: Text(widget.category == null ? 'Crear' : 'Guardar'),
         ),
       ],
+    );
+  }
+}
+
+// Widget auxiliar para mostrar contadores en badges
+class _Badge extends StatelessWidget {
+  final String text;
+  final Color color;
+  final String tooltip;
+
+  const _Badge({
+    required this.text,
+    required this.color,
+    required this.tooltip,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        margin: const EdgeInsets.only(left: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: color,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
     );
   }
 }
