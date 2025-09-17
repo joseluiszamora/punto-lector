@@ -24,15 +24,15 @@ class AuthorCard extends StatelessWidget {
           ],
         ),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             // Avatar del autor
             Hero(
               tag: 'author-${author.id}',
               child: Container(
-                width: 80,
-                height: 80,
+                width: 70,
+                height: 70,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   boxShadow: [
@@ -57,62 +57,63 @@ class AuthorCard extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             // Nombre del autor
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                author.name,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(height: 8),
-            // Información adicional
-            if (author.birthDate != null) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Text(
-                  _getAgeText(),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).primaryColor,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
-            // Bio corta
-            if (author.bio?.isNotEmpty == true)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  author.bio!,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                    height: 1.3,
+                  author.name,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                 ),
               ),
-            const SizedBox(height: 16),
+            ),
+            // Información adicional
+            if (author.birthDate != null) ...[
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  _getAgeText(),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Theme.of(context).primaryColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+            ],
+            // Bio corta (solo si hay espacio)
+            if (author.bio?.isNotEmpty == true && author.birthDate == null)
+              Flexible(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    author.bio!,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                      height: 1.2,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -135,7 +136,7 @@ class AuthorCard extends StatelessWidget {
         child: Text(
           author.name.isNotEmpty ? author.name[0].toUpperCase() : '?',
           style: const TextStyle(
-            fontSize: 24,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
