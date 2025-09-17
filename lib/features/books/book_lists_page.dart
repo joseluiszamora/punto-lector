@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:puntolector/features/authors/presentation/author_detail_page.dart';
+import 'package:puntolector/features/authors/presentation/authors_list_page.dart';
 import '../../core/supabase/supabase_client_provider.dart';
 import '../../data/repositories/favorites_repository.dart';
 import '../../data/models/book.dart';
@@ -114,11 +116,7 @@ class _BookListsPageState extends State<BookListsPage> {
                           : () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder:
-                                    (_) => AuthorsAllPage(
-                                      initial: _popularAuthors,
-                                      repo: _authorsRepo,
-                                    ),
+                                builder: (_) => AuthorsListPage(),
                               ),
                             );
                           },
@@ -270,40 +268,50 @@ class _AuthorCircle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 72,
-      child: Column(
-        children: [
-          ClipOval(
-            child: SizedBox(
-              width: 56,
-              height: 56,
-              child:
-                  (author.photoUrl != null && author.photoUrl!.isNotEmpty)
-                      ? Image.network(
-                        author.photoUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder:
-                            (_, __, ___) => Container(
-                              color: Colors.grey.shade300,
-                              child: const Icon(Icons.person_outline),
-                            ),
-                      )
-                      : Container(
-                        color: Colors.grey.shade300,
-                        child: const Icon(Icons.person_outline),
-                      ),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AuthorDetailPage(author: author),
+          ),
+        );
+      },
+      child: SizedBox(
+        width: 72,
+        child: Column(
+          children: [
+            ClipOval(
+              child: SizedBox(
+                width: 56,
+                height: 56,
+                child:
+                    (author.photoUrl != null && author.photoUrl!.isNotEmpty)
+                        ? Image.network(
+                          author.photoUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder:
+                              (_, __, ___) => Container(
+                                color: Colors.grey.shade300,
+                                child: const Icon(Icons.person_outline),
+                              ),
+                        )
+                        : Container(
+                          color: Colors.grey.shade300,
+                          child: const Icon(Icons.person_outline),
+                        ),
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            author.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-            textAlign: TextAlign.center,
-          ),
-        ],
+            const SizedBox(height: 6),
+            Text(
+              author.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -378,101 +386,6 @@ class _EmptyFavorites extends StatelessWidget {
       return const Center(child: Text('Inicia sesión para ver tus favoritos'));
     }
     return const Center(child: Text('Aún no tienes favoritos'));
-  }
-}
-
-class AuthorsAllPage extends StatefulWidget {
-  final List<Author> initial;
-  final AuthorsRepository repo;
-  const AuthorsAllPage({super.key, required this.initial, required this.repo});
-
-  @override
-  State<AuthorsAllPage> createState() => _AuthorsAllPageState();
-}
-
-class _AuthorsAllPageState extends State<AuthorsAllPage> {
-  List<Author> _authors = const [];
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _authors = widget.initial;
-    _refresh();
-  }
-
-  Future<void> _refresh() async {
-    try {
-      final res = await widget.repo.listAll(limit: 500);
-      if (mounted) setState(() => _authors = res);
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Autores')),
-      body: RefreshIndicator(
-        onRefresh: _refresh,
-        child:
-            _loading
-                ? const Center(child: CircularProgressIndicator())
-                : GridView.builder(
-                  padding: const EdgeInsets.all(12),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 3 / 4,
-                  ),
-                  itemCount: _authors.length,
-                  itemBuilder: (context, index) {
-                    final a = _authors[index];
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ClipOval(
-                          child: SizedBox(
-                            width: 72,
-                            height: 72,
-                            child:
-                                (a.photoUrl != null && a.photoUrl!.isNotEmpty)
-                                    ? Image.network(
-                                      a.photoUrl!,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (_, __, ___) => Container(
-                                            color: Colors.grey.shade300,
-                                            child: const Icon(
-                                              Icons.person_outline,
-                                            ),
-                                          ),
-                                    )
-                                    : Container(
-                                      color: Colors.grey.shade300,
-                                      child: const Icon(Icons.person_outline),
-                                    ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          a.name,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-      ),
-    );
   }
 }
 
