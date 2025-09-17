@@ -13,6 +13,7 @@ import 'package:puntolector/features/books/presentation/book_card_small.dart';
 import 'package:puntolector/features/books/presentation/favorites_books_page.dart';
 import 'package:puntolector/features/books/presentation/popular_books_page.dart';
 import 'package:puntolector/features/books/widgets/empty_favorites.dart';
+import 'package:puntolector/features/categories/widgets/category_hierarchy_widget.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -160,6 +161,16 @@ class _HomePageState extends State<HomePage> {
                           )),
             ),
             const SizedBox(height: 16),
+
+            //* Sección: Categorias
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'Categorías',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+            ),
+            const SizedBox(height: 8),
 
             //* Sección: Libros populares
             Padding(
