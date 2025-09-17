@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:puntolector/features/books/book_lists_page.dart';
 import 'package:puntolector/features/books/presentation/search_book_page.dart';
+import 'package:puntolector/features/home/home_page.dart';
 import 'package:puntolector/features/maps/map_page.dart';
 import '../../core/navigation/nav_cubit.dart';
 import '../books/presentation/search_section.dart';
@@ -29,7 +30,8 @@ class RootNavPage extends StatelessWidget {
 
     final pages = [
       // Todos los Libros
-      const BookListsPage(),
+      // const BookListsPage(),
+      const HomePage(),
       // Libros
       const SearchBookPage(),
       // Tiendas (mapa)

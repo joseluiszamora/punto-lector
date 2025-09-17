@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:puntolector/features/authors/presentation/author_detail_page.dart';
 import 'package:puntolector/features/authors/presentation/authors_list_page.dart';
+import 'package:puntolector/features/authors/widgets/author_circle.dart';
+import 'package:puntolector/features/books/presentation/book_card_small.dart';
+import 'package:puntolector/features/books/presentation/favorites_books_page.dart';
+import 'package:puntolector/features/books/presentation/popular_books_page.dart';
+import 'package:puntolector/features/books/widgets/empty_favorites.dart';
 import '../../core/supabase/supabase_client_provider.dart';
 import '../../data/repositories/favorites_repository.dart';
 import '../../data/models/book.dart';
@@ -9,7 +13,6 @@ import '../auth/state/auth_bloc.dart';
 import '../../data/models/author.dart';
 import '../../data/repositories/authors_repository.dart';
 import '../../data/repositories/books_repository.dart';
-import 'presentation/book_detail_page.dart';
 
 class BookListsPage extends StatefulWidget {
   const BookListsPage({super.key});
@@ -138,7 +141,7 @@ class _BookListsPageState extends State<BookListsPage> {
                           scrollDirection: Axis.horizontal,
                           itemBuilder: (context, index) {
                             final a = _popularAuthors[index];
-                            return _AuthorCircle(author: a);
+                            return AuthorCircle(author: a);
                           },
                           separatorBuilder:
                               (_, __) => const SizedBox(width: 12),
@@ -168,7 +171,7 @@ class _BookListsPageState extends State<BookListsPage> {
                             Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder:
-                                    (_) => PopularBooksAllPage(
+                                    (_) => PopularBooksPage(
                                       initial: _popularBooks,
                                     ),
                               ),
@@ -198,7 +201,7 @@ class _BookListsPageState extends State<BookListsPage> {
                               (_, __) => const SizedBox(width: 12),
                           itemBuilder:
                               (context, i) =>
-                                  _BookCardSmall(book: _popularBooks[i]),
+                                  BookCardSmall(book: _popularBooks[i]),
                         )),
           ),
           const SizedBox(height: 16),
@@ -221,9 +224,8 @@ class _BookListsPageState extends State<BookListsPage> {
                             Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder:
-                                    (_) => FavoritesAllGridPage(
+                                    (_) => FavoritesBooksPage(
                                       initial: _allFavorites,
-                                      repo: _favoritesRepo,
                                     ),
                               ),
                             );
@@ -240,13 +242,13 @@ class _BookListsPageState extends State<BookListsPage> {
                 _loading
                     ? const Center(child: CircularProgressIndicator())
                     : (_allFavorites.isEmpty
-                        ? const _EmptyFavorites()
+                        ? const EmptyFavorites()
                         : ListView.separated(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           scrollDirection: Axis.horizontal,
                           itemBuilder: (context, index) {
                             final book = _allFavorites[index];
-                            return _BookCardSmall(book: book);
+                            return BookCardSmall(book: book);
                           },
                           separatorBuilder:
                               (_, __) => const SizedBox(width: 12),
@@ -257,361 +259,6 @@ class _BookListsPageState extends State<BookListsPage> {
                         )),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _AuthorCircle extends StatelessWidget {
-  final Author author;
-  const _AuthorCircle({required this.author});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => AuthorDetailPage(author: author),
-          ),
-        );
-      },
-      child: SizedBox(
-        width: 72,
-        child: Column(
-          children: [
-            ClipOval(
-              child: SizedBox(
-                width: 56,
-                height: 56,
-                child:
-                    (author.photoUrl != null && author.photoUrl!.isNotEmpty)
-                        ? Image.network(
-                          author.photoUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder:
-                              (_, __, ___) => Container(
-                                color: Colors.grey.shade300,
-                                child: const Icon(Icons.person_outline),
-                              ),
-                        )
-                        : Container(
-                          color: Colors.grey.shade300,
-                          child: const Icon(Icons.person_outline),
-                        ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              author.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BookCardSmall extends StatelessWidget {
-  final Book book;
-  const _BookCardSmall({required this.book});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (context) => BookDetailPage(book: book)),
-        );
-      },
-      child: SizedBox(
-        width: 120,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Hero(
-                tag: 'book-${book.id}',
-                child: AspectRatio(
-                  aspectRatio: 3 / 4,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child:
-                        book.coverUrl != null && book.coverUrl!.isNotEmpty
-                            ? Image.network(book.coverUrl!, fit: BoxFit.cover)
-                            : Container(
-                              color: Colors.grey.shade300,
-                              child: const Icon(
-                                Icons.menu_book_outlined,
-                                size: 40,
-                              ),
-                            ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              book.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              book.authorsLabel,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyFavorites extends StatelessWidget {
-  const _EmptyFavorites();
-
-  @override
-  Widget build(BuildContext context) {
-    final auth = context.watch<AuthBloc>().state;
-    if (auth is! Authenticated) {
-      return const Center(child: Text('Inicia sesión para ver tus favoritos'));
-    }
-    return const Center(child: Text('Aún no tienes favoritos'));
-  }
-}
-
-class FavoritesAllGridPage extends StatefulWidget {
-  final List<Book> initial;
-  final FavoritesRepository repo;
-  const FavoritesAllGridPage({
-    super.key,
-    required this.initial,
-    required this.repo,
-  });
-
-  @override
-  State<FavoritesAllGridPage> createState() => _FavoritesAllGridPageState();
-}
-
-class _FavoritesAllGridPageState extends State<FavoritesAllGridPage> {
-  List<Book> _books = const [];
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _books = widget.initial;
-    _refresh();
-  }
-
-  Future<void> _refresh() async {
-    final auth = context.read<AuthBloc>().state;
-    if (auth is! Authenticated) {
-      setState(() => _loading = false);
-      return;
-    }
-    try {
-      final res = await widget.repo.listUserFavoriteBooks(auth.user.id);
-      if (mounted) setState(() => _books = res);
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Mis favoritos')),
-      body: RefreshIndicator(
-        onRefresh: _refresh,
-        child:
-            _loading
-                ? const Center(child: CircularProgressIndicator())
-                : GridView.builder(
-                  padding: const EdgeInsets.all(12),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 3 / 5,
-                  ),
-                  itemCount: _books.length,
-                  itemBuilder: (context, index) {
-                    final b = _books[index];
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => BookDetailPage(book: b),
-                          ),
-                        );
-                      },
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Hero(
-                              tag: 'book-${b.id}',
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child:
-                                    b.coverUrl != null && b.coverUrl!.isNotEmpty
-                                        ? Image.network(
-                                          b.coverUrl!,
-                                          fit: BoxFit.cover,
-                                        )
-                                        : Container(
-                                          color: Colors.grey.shade300,
-                                          child: const Icon(
-                                            Icons.menu_book_outlined,
-                                            size: 40,
-                                          ),
-                                        ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            b.title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          Text(
-                            b.authorsLabel,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-      ),
-    );
-  }
-}
-
-class PopularBooksAllPage extends StatefulWidget {
-  final List<Book> initial;
-  const PopularBooksAllPage({super.key, required this.initial});
-
-  @override
-  State<PopularBooksAllPage> createState() => _PopularBooksAllPageState();
-}
-
-class _PopularBooksAllPageState extends State<PopularBooksAllPage> {
-  List<Book> _books = const [];
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _books = widget.initial;
-    _refresh();
-  }
-
-  Future<void> _refresh() async {
-    try {
-      final repo = BooksRepository(SupabaseInit.client);
-      final res = await repo.popularBooks(
-        window: '30d',
-        mode: 'trending',
-        limit: 60,
-      );
-      if (mounted) setState(() => _books = res);
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Libros populares')),
-      body: RefreshIndicator(
-        onRefresh: _refresh,
-        child:
-            _loading
-                ? const Center(child: CircularProgressIndicator())
-                : GridView.builder(
-                  padding: const EdgeInsets.all(12),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 3 / 5,
-                  ),
-                  itemCount: _books.length,
-                  itemBuilder: (c, i) {
-                    final b = _books[i];
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => BookDetailPage(book: b),
-                          ),
-                        );
-                      },
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Hero(
-                              tag: 'book-${b.id}',
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child:
-                                    (b.coverUrl != null &&
-                                            b.coverUrl!.isNotEmpty)
-                                        ? Image.network(
-                                          b.coverUrl!,
-                                          fit: BoxFit.cover,
-                                        )
-                                        : Container(
-                                          color: Colors.grey.shade300,
-                                          child: const Icon(
-                                            Icons.menu_book_outlined,
-                                            size: 40,
-                                          ),
-                                        ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            b.title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          Text(
-                            b.authorsLabel,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
       ),
     );
   }
