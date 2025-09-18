@@ -3,8 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:puntolector/core/supabase/supabase_client_provider.dart';
 import 'package:puntolector/data/models/author.dart';
 import 'package:puntolector/data/models/book.dart';
+import 'package:puntolector/data/models/category.dart';
 import 'package:puntolector/data/repositories/authors_repository.dart';
 import 'package:puntolector/data/repositories/books_repository.dart';
+import 'package:puntolector/data/repositories/categories_repository.dart';
 import 'package:puntolector/data/repositories/favorites_repository.dart';
 import 'package:puntolector/features/auth/state/auth_bloc.dart';
 import 'package:puntolector/features/authors/presentation/authors_list_page.dart';
@@ -13,7 +15,7 @@ import 'package:puntolector/features/books/presentation/book_card_small.dart';
 import 'package:puntolector/features/books/presentation/favorites_books_page.dart';
 import 'package:puntolector/features/books/presentation/popular_books_page.dart';
 import 'package:puntolector/features/books/widgets/empty_favorites.dart';
-import 'package:puntolector/features/categories/widgets/category_hierarchy_widget.dart';
+import 'package:puntolector/features/categories/widgets/category_chip.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -31,6 +33,10 @@ class _HomePageState extends State<HomePage> {
   late final BooksRepository _booksRepo;
   List<Book> _popularBooks = const [];
   bool _loadingPopularBooks = true;
+  // Categorías principales
+  late final CategoriesRepository _categoriesRepo;
+  List<Category> _mainCategories = const [];
+  bool _loadingCategories = true;
   // Mis favoritos
   late final FavoritesRepository _favoritesRepo;
   List<Book> _allFavorites = const [];
@@ -42,9 +48,11 @@ class _HomePageState extends State<HomePage> {
     _favoritesRepo = FavoritesRepository(SupabaseInit.client);
     _authorsRepo = AuthorsRepository(SupabaseInit.client);
     _booksRepo = BooksRepository(SupabaseInit.client);
+    _categoriesRepo = CategoriesRepository(SupabaseInit.client);
     _loadFavorites();
     _loadAuthors();
     _loadPopularBooks();
+    _loadMainCategories();
   }
 
   Future<void> _loadAuthors() async {
@@ -92,6 +100,19 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> _loadMainCategories() async {
+    setState(() => _loadingCategories = true);
+    try {
+      // Cargar solo las categorías de nivel 0 (principales)
+      final data = await _categoriesRepo.getCategoriesByLevel(level: 0);
+      if (mounted) setState(() => _mainCategories = data);
+    } catch (_) {
+      if (mounted) setState(() => _mainCategories = const []);
+    } finally {
+      if (mounted) setState(() => _loadingCategories = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -101,6 +122,7 @@ class _HomePageState extends State<HomePage> {
           await _loadFavorites();
           await _loadAuthors();
           await _loadPopularBooks();
+          await _loadMainCategories();
         },
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -171,6 +193,28 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(height: 8),
+            SizedBox(
+              height: 45,
+              child:
+                  _loadingCategories
+                      ? const Center(child: CircularProgressIndicator())
+                      : (_mainCategories.isEmpty
+                          ? const Center(
+                            child: Text('Sin categorías para mostrar'),
+                          )
+                          : ListView.separated(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            scrollDirection: Axis.horizontal,
+                            itemBuilder: (context, index) {
+                              final category = _mainCategories[index];
+                              return CategoryChip(category: category);
+                            },
+                            separatorBuilder:
+                                (_, __) => const SizedBox(width: 8),
+                            itemCount: _mainCategories.length,
+                          )),
+            ),
+            const SizedBox(height: 16),
 
             //* Sección: Libros populares
             Padding(
