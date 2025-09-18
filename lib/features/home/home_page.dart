@@ -15,6 +15,7 @@ import 'package:puntolector/features/books/presentation/book_card_small.dart';
 import 'package:puntolector/features/books/presentation/favorites_books_page.dart';
 import 'package:puntolector/features/books/presentation/popular_books_page.dart';
 import 'package:puntolector/features/books/widgets/empty_favorites.dart';
+import 'package:puntolector/features/categories/presentation/category_detail_page.dart';
 import 'package:puntolector/features/categories/widgets/selectable_category_chip.dart';
 
 class HomePage extends StatefulWidget {
@@ -169,6 +170,15 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  void _navigateToCategoryDetail(Category category) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CategoryDetailPage(category: category),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -245,11 +255,26 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 16),
 
             //* Sección: Categorias
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Categorías',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Categorías',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  if (_selectedCategory != null)
+                    TextButton(
+                      onPressed:
+                          () => _navigateToCategoryDetail(_selectedCategory!),
+                      child: Text('Ver todos: ${_selectedCategory!.name}'),
+                    ),
+                ],
               ),
             ),
             const SizedBox(height: 8),
