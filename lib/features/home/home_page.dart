@@ -303,8 +303,10 @@ class _HomePageState extends State<HomePage> {
                             separatorBuilder:
                                 (_, __) => const SizedBox(width: 12),
                             itemBuilder:
-                                (context, i) =>
-                                    BookCardSmall(book: _categoryBooks[i]),
+                                (context, i) => BookCardSmall(
+                                  book: _categoryBooks[i],
+                                  heroTagSuffix: 'category',
+                                ),
                           )),
             ),
             const SizedBox(height: 16),
@@ -360,8 +362,10 @@ class _HomePageState extends State<HomePage> {
                             separatorBuilder:
                                 (_, __) => const SizedBox(width: 12),
                             itemBuilder:
-                                (context, i) =>
-                                    BookCardSmall(book: _popularBooks[i]),
+                                (context, i) => BookCardSmall(
+                                  book: _popularBooks[i],
+                                  heroTagSuffix: 'popular',
+                                ),
                           )),
             ),
             const SizedBox(height: 16),
@@ -412,7 +416,10 @@ class _HomePageState extends State<HomePage> {
                             scrollDirection: Axis.horizontal,
                             itemBuilder: (context, index) {
                               final book = _allFavorites[index];
-                              return BookCardSmall(book: book);
+                              return BookCardSmall(
+                                book: book,
+                                heroTagSuffix: 'favorites',
+                              );
                             },
                             separatorBuilder:
                                 (_, __) => const SizedBox(width: 12),

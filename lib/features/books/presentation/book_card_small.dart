@@ -4,7 +4,9 @@ import 'package:puntolector/features/books/presentation/book_detail_page.dart';
 
 class BookCardSmall extends StatelessWidget {
   final Book book;
-  const BookCardSmall({super.key, required this.book});
+  final String? heroTagSuffix;
+
+  const BookCardSmall({super.key, required this.book, this.heroTagSuffix});
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +23,8 @@ class BookCardSmall extends StatelessWidget {
           children: [
             Expanded(
               child: Hero(
-                tag: 'book-${book.id}',
+                tag:
+                    'book-${book.id}${heroTagSuffix != null ? '-$heroTagSuffix' : ''}',
                 child: AspectRatio(
                   aspectRatio: 3 / 4,
                   child: ClipRRect(

@@ -200,8 +200,10 @@ class _BookListsPageState extends State<BookListsPage> {
                           separatorBuilder:
                               (_, __) => const SizedBox(width: 12),
                           itemBuilder:
-                              (context, i) =>
-                                  BookCardSmall(book: _popularBooks[i]),
+                              (context, i) => BookCardSmall(
+                                book: _popularBooks[i],
+                                heroTagSuffix: 'book-lists-popular',
+                              ),
                         )),
           ),
           const SizedBox(height: 16),
@@ -248,7 +250,10 @@ class _BookListsPageState extends State<BookListsPage> {
                           scrollDirection: Axis.horizontal,
                           itemBuilder: (context, index) {
                             final book = _allFavorites[index];
-                            return BookCardSmall(book: book);
+                            return BookCardSmall(
+                              book: book,
+                              heroTagSuffix: 'book-lists-favorites',
+                            );
                           },
                           separatorBuilder:
                               (_, __) => const SizedBox(width: 12),
