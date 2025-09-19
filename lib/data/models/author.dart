@@ -5,7 +5,7 @@ class Author {
   final DateTime? birthDate;
   final DateTime? deathDate;
   final String? photoUrl;
-  final String? website;
+  final String? nationalityId;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -16,7 +16,7 @@ class Author {
     this.birthDate,
     this.deathDate,
     this.photoUrl,
-    this.website,
+    this.nationalityId,
     this.createdAt,
     this.updatedAt,
   });
@@ -37,7 +37,7 @@ class Author {
       birthDate: _parseDate(map['birth_date']),
       deathDate: _parseDate(map['death_date']),
       photoUrl: map['photo_url'] as String?,
-      website: map['website'] as String?,
+      nationalityId: map['nationality_id'] as String?,
       createdAt: _parseDate(map['created_at']),
       updatedAt: _parseDate(map['updated_at']),
     );
@@ -50,7 +50,7 @@ class Author {
     'birth_date': birthDate?.toIso8601String(),
     'death_date': deathDate?.toIso8601String(),
     'photo_url': photoUrl,
-    'website': website,
+    'nationality_id': nationalityId,
     'created_at': createdAt?.toIso8601String(),
     'updated_at': updatedAt?.toIso8601String(),
   };

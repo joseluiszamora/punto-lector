@@ -47,7 +47,7 @@ class _AuthorsCubit extends Cubit<_AuthorsState> {
     DateTime? birthDate,
     DateTime? deathDate,
     String? photoUrl,
-    String? website,
+    String? nationalityId,
   }) async {
     emit(const _AuthorsState.operating());
     try {
@@ -57,7 +57,7 @@ class _AuthorsCubit extends Cubit<_AuthorsState> {
         birthDate: birthDate,
         deathDate: deathDate,
         photoUrl: photoUrl,
-        website: website,
+        nationalityId: nationalityId,
       );
       emit(const _AuthorsState.operationSuccess());
       await load();
@@ -73,7 +73,7 @@ class _AuthorsCubit extends Cubit<_AuthorsState> {
     DateTime? birthDate,
     DateTime? deathDate,
     String? photoUrl,
-    String? website,
+    String? nationalityId,
   }) async {
     emit(const _AuthorsState.operating());
     try {
@@ -84,7 +84,7 @@ class _AuthorsCubit extends Cubit<_AuthorsState> {
         birthDate: birthDate,
         deathDate: deathDate,
         photoUrl: photoUrl,
-        website: website,
+        nationalityId: nationalityId,
       );
       emit(const _AuthorsState.operationSuccess());
       await load();
@@ -179,7 +179,6 @@ class _AuthorsView extends StatelessWidget {
                 final subtitle = [
                   if ((a.birthDate != null) || (a.deathDate != null))
                     _formatLifespan(a.birthDate, a.deathDate),
-                  if ((a.website ?? '').isNotEmpty) a.website!,
                 ].where((e) => e.isNotEmpty).join(' • ');
                 return ListTile(
                   leading:
@@ -270,7 +269,7 @@ class _AuthorsView extends StatelessWidget {
             initialBirth: author?.birthDate,
             initialDeath: author?.deathDate,
             initialPhotoUrl: author?.photoUrl,
-            initialWebsite: author?.website,
+            initialNationalityId: author?.nationalityId,
           ),
     );
     if (result == null) return;
@@ -282,7 +281,7 @@ class _AuthorsView extends StatelessWidget {
         birthDate: result.birthDate,
         deathDate: result.deathDate,
         photoUrl: result.photoUrl,
-        website: result.website,
+        nationalityId: result.nationalityId,
       );
     } else {
       await cubit.update(
@@ -292,7 +291,7 @@ class _AuthorsView extends StatelessWidget {
         birthDate: result.birthDate,
         deathDate: result.deathDate,
         photoUrl: result.photoUrl,
-        website: result.website,
+        nationalityId: result.nationalityId,
       );
     }
   }
@@ -328,14 +327,14 @@ class _AuthorFormResult {
   final DateTime? birthDate;
   final DateTime? deathDate;
   final String? photoUrl;
-  final String? website;
+  final String? nationalityId;
   _AuthorFormResult({
     required this.name,
     this.bio,
     this.birthDate,
     this.deathDate,
     this.photoUrl,
-    this.website,
+    this.nationalityId,
   });
 }
 
@@ -345,14 +344,14 @@ class _AuthorDialog extends StatefulWidget {
   final DateTime? initialBirth;
   final DateTime? initialDeath;
   final String? initialPhotoUrl;
-  final String? initialWebsite;
+  final String? initialNationalityId;
   const _AuthorDialog({
     this.initialName,
     this.initialBio,
     this.initialBirth,
     this.initialDeath,
     this.initialPhotoUrl,
-    this.initialWebsite,
+    this.initialNationalityId,
   });
   @override
   State<_AuthorDialog> createState() => _AuthorDialogState();
@@ -362,30 +361,57 @@ class _AuthorDialogState extends State<_AuthorDialog> {
   final _form = GlobalKey<FormState>();
   late final TextEditingController _name;
   late final TextEditingController _bio;
-  late final TextEditingController _website;
   String? _photoUrl;
   bool _uploading = false;
   String? _uploadError;
   DateTime? _birthDate;
   DateTime? _deathDate;
 
+  // nacionalidades
+  List<Map<String, dynamic>> _nationalities = [];
+  String? _nationalityId;
+  bool _loadingNats = false;
+
   @override
   void initState() {
     super.initState();
     _name = TextEditingController(text: widget.initialName ?? '');
     _bio = TextEditingController(text: widget.initialBio ?? '');
-    _website = TextEditingController(text: widget.initialWebsite ?? '');
     _photoUrl = widget.initialPhotoUrl;
     _birthDate = widget.initialBirth;
     _deathDate = widget.initialDeath;
+    _nationalityId = widget.initialNationalityId;
+    _loadNationalities();
   }
 
   @override
   void dispose() {
     _name.dispose();
     _bio.dispose();
-    _website.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadNationalities() async {
+    setState(() => _loadingNats = true);
+    try {
+      final res = await SupabaseInit.client
+          .from('nationalities')
+          .select('id, name')
+          .order('name');
+      final list =
+          (res as List).map((e) => Map<String, dynamic>.from(e)).toList();
+      if (!mounted) return;
+      setState(() {
+        _nationalities = list;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _nationalities = [];
+      });
+    } finally {
+      if (mounted) setState(() => _loadingNats = false);
+    }
   }
 
   String _rand(int len) {
@@ -578,10 +604,42 @@ class _AuthorDialogState extends State<_AuthorDialog> {
                 ],
               ),
               const SizedBox(height: 8),
-              TextFormField(
-                controller: _website,
-                decoration: const InputDecoration(labelText: 'Website (URL)'),
-                keyboardType: TextInputType.url,
+              Row(
+                children: [
+                  Expanded(
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Nacionalidad',
+                      ),
+                      child:
+                          _loadingNats
+                              ? const LinearProgressIndicator(minHeight: 2)
+                              : DropdownButtonHideUnderline(
+                                child: DropdownButton<String?>(
+                                  isExpanded: true,
+                                  value: _nationalityId,
+                                  hint: const Text('Selecciona...'),
+                                  items: [
+                                    const DropdownMenuItem<String?>(
+                                      value: null,
+                                      child: Text('Sin especificar'),
+                                    ),
+                                    ..._nationalities.map(
+                                      (n) => DropdownMenuItem(
+                                        value: n['id'] as String,
+                                        child: Text(n['name'] as String),
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged:
+                                      (v) => setState(() {
+                                        _nationalityId = v;
+                                      }),
+                                ),
+                              ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               Row(
@@ -635,10 +693,7 @@ class _AuthorDialogState extends State<_AuthorDialog> {
                         birthDate: _birthDate,
                         deathDate: _deathDate,
                         photoUrl: _photoUrl,
-                        website:
-                            _website.text.trim().isEmpty
-                                ? null
-                                : _website.text.trim(),
+                        nationalityId: _nationalityId,
                       ),
                     );
                   },

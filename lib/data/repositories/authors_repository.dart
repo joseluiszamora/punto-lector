@@ -11,7 +11,7 @@ abstract class IAuthorsRepository {
     DateTime? birthDate,
     DateTime? deathDate,
     String? photoUrl,
-    String? website,
+    String? nationalityId,
   });
   Future<Author> update(
     String id, {
@@ -20,7 +20,7 @@ abstract class IAuthorsRepository {
     DateTime? birthDate,
     DateTime? deathDate,
     String? photoUrl,
-    String? website,
+    String? nationalityId,
   });
   Future<void> delete(String id);
 }
@@ -37,7 +37,7 @@ class AuthorsRepository implements IAuthorsRepository {
     final res = await _client
         .from('authors')
         .select(
-          'id, name, bio, birth_date, death_date, photo_url, website, created_at, updated_at',
+          'id, name, bio, birth_date, death_date, photo_url, nationality_id, created_at, updated_at',
         )
         .order('name')
         .limit(limit);
@@ -54,7 +54,7 @@ class AuthorsRepository implements IAuthorsRepository {
     DateTime? birthDate,
     DateTime? deathDate,
     String? photoUrl,
-    String? website,
+    String? nationalityId,
   }) async {
     final payload = {
       'name': name,
@@ -62,14 +62,14 @@ class AuthorsRepository implements IAuthorsRepository {
       'birth_date': _toPgDate(birthDate),
       'death_date': _toPgDate(deathDate),
       'photo_url': photoUrl,
-      'website': website,
+      if (nationalityId != null) 'nationality_id': nationalityId,
     };
     final res =
         await _client
             .from('authors')
             .insert(payload)
             .select(
-              'id, name, bio, birth_date, death_date, photo_url, website, created_at, updated_at',
+              'id, name, bio, birth_date, death_date, photo_url, nationality_id, created_at, updated_at',
             )
             .single();
     return Author.fromMap(Map<String, dynamic>.from(res as Map));
@@ -83,7 +83,7 @@ class AuthorsRepository implements IAuthorsRepository {
     DateTime? birthDate,
     DateTime? deathDate,
     String? photoUrl,
-    String? website,
+    String? nationalityId,
   }) async {
     final payload = {
       'name': name,
@@ -91,7 +91,7 @@ class AuthorsRepository implements IAuthorsRepository {
       'birth_date': _toPgDate(birthDate),
       'death_date': _toPgDate(deathDate),
       'photo_url': photoUrl,
-      'website': website,
+      'nationality_id': nationalityId,
     };
     final res =
         await _client
@@ -99,7 +99,7 @@ class AuthorsRepository implements IAuthorsRepository {
             .update(payload)
             .eq('id', id)
             .select(
-              'id, name, bio, birth_date, death_date, photo_url, website, created_at, updated_at',
+              'id, name, bio, birth_date, death_date, photo_url, nationality_id, created_at, updated_at',
             )
             .single();
     return Author.fromMap(Map<String, dynamic>.from(res as Map));

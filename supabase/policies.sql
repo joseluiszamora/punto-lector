@@ -61,13 +61,13 @@ using (owner_uid = auth.uid() or public.current_role() in ('admin','super_admin'
 -- authors (lectura pública, escritura admin)
 drop policy if exists authors_select on public.authors;
 create policy authors_select on public.authors
-  for select using (true);
+for select using (true);
 
 drop policy if exists authors_write on public.authors;
 create policy authors_write on public.authors
-for all
-using (public.current_role() in ('admin','super_admin'))
-with check (public.current_role() in ('admin','super_admin'));
+for all to authenticated
+using (exists (select 1 from public.user_profiles up where up.id = auth.uid() and up.role in ('admin','super_admin')))
+with check (exists (select 1 from public.user_profiles up where up.id = auth.uid() and up.role in ('admin','super_admin')));
 
 -- categories (lectura pública, escritura admin)
 drop policy if exists categories_select on public.categories;

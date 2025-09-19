@@ -65,10 +65,15 @@ create table if not exists public.authors (
   birth_date date,
   death_date date,
   photo_url text,
-  website text,
+  nationality_id uuid references public.nationalities(id) on delete set null,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+-- Ajustes idempotentes para authors (migración)
+alter table if exists public.authors
+  drop column if exists website,
+  add column if not exists nationality_id uuid references public.nationalities(id) on delete set null;
 
 -- Books (catalog)
 create table if not exists public.books (
@@ -163,6 +168,7 @@ create table if not exists public.synonyms (
 drop index if exists idx_books_title;
 create index if not exists idx_stores_location on public.stores (lat, lng);
 create index if not exists idx_authors_name on public.authors (name);
+create index if not exists idx_authors_nationality on public.authors (nationality_id);
 
 -- Búsqueda avanzada: trigram + FTS
 create extension if not exists pg_trgm;

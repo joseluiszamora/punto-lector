@@ -192,3 +192,10 @@ Ejemplo de `filters`:
 - Si `q` es vacío, se devuelven resultados sin filtrar por texto (solo filtros/ordenación).
 - Las categorías jerárquicas soportan hasta 10 niveles de profundidad.
 - La integridad referencial está protegida contra referencias circulares.
+
+---
+
+## Cambios recientes en esquema
+
+- Tabla authors: eliminado campo `website`, agregado `nationality_id` (FK a `public.nationalities`) con `on delete set null` e índice `idx_authors_nationality`.
+- Seed actualizado para no usar `website` y para asignar nacionalidades a autores ejemplo (CO, AR) si existen.

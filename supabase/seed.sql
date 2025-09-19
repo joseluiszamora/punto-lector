@@ -20,13 +20,24 @@ where p.id = (
 ) and p.role <> 'store_manager';
 
 -- 1) Autores
-insert into public.authors (name, bio, website)
-select 'Gabriel García Márquez', 'Autor colombiano, Premio Nobel de Literatura.', 'https://es.wikipedia.org/wiki/Gabriel_Garc%C3%ADa_M%C3%A1rquez'
+insert into public.authors (name, bio)
+select 'Gabriel García Márquez', 'Autor colombiano, Premio Nobel de Literatura.'
 where not exists (select 1 from public.authors where name = 'Gabriel García Márquez');
 
-insert into public.authors (name, bio, website)
-select 'Julio Cortázar', 'Escritor argentino, figura clave del boom latinoamericano.', 'https://es.wikipedia.org/wiki/Julio_Cort%C3%A1zar'
+insert into public.authors (name, bio)
+select 'Julio Cortázar', 'Escritor argentino, figura clave del boom latinoamericano.'
 where not exists (select 1 from public.authors where name = 'Julio Cortázar');
+
+-- 1.1) Asignar nacionalidad a autores si existen
+update public.authors a
+set nationality_id = n.id
+from public.nationalities n
+where a.name = 'Gabriel García Márquez' and n.country_code = 'CO' and a.nationality_id is distinct from n.id;
+
+update public.authors a
+set nationality_id = n.id
+from public.nationalities n
+where a.name = 'Julio Cortázar' and n.country_code = 'AR' and a.nationality_id is distinct from n.id;
 
 -- 2) Libros (sin columna author)
 insert into public.books (title, cover_url, summary, published_at, isbn, language)

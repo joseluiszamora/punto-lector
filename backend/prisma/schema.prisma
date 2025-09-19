@@ -30,18 +30,20 @@ model books {
 }
 
 model authors {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name       String
-  bio        String?
-  birth_date DateTime? @db.Date
-  death_date DateTime? @db.Date
-  photo_url  String?
-  website    String?
-  created_at DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at DateTime? @default(now()) @db.Timestamptz(6)
-  books      books[]
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String
+  bio            String?
+  birth_date     DateTime?      @db.Date
+  death_date     DateTime?      @db.Date
+  photo_url      String?
+  nationality_id String?        @db.Uuid
+  nationality    nationalities? @relation(fields: [nationality_id], references: [id])
+  created_at     DateTime?      @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime?      @default(now()) @db.Timestamptz(6)
+  books          books[]
 
   @@index([name])
+  @@index([nationality_id])
 }
 
 model listings {
@@ -176,6 +178,7 @@ model nationalities {
   created_at   DateTime?       @default(now()) @db.Timestamptz(6)
   updated_at   DateTime?       @default(now()) @db.Timestamptz(6)
   users        user_profiles[]
+  authors      authors[]
 
   @@unique([country_code])
   @@index([name])

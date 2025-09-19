@@ -20,12 +20,16 @@ class _AuthorDetailPageState extends State<AuthorDetailPage> {
   late final AuthorsRepository _authorsRepository;
   List<Book> _authorBooks = [];
   bool _isLoading = true;
+  // Nueva info de nacionalidad
+  String? _nationalityName;
+  String? _nationalityFlagUrl;
 
   @override
   void initState() {
     super.initState();
     _authorsRepository = AuthorsRepository(SupabaseInit.client);
     _loadAuthorBooks();
+    _loadNationality();
   }
 
   Future<void> _loadAuthorBooks() async {
@@ -43,6 +47,29 @@ class _AuthorDetailPageState extends State<AuthorDetailPage> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _loadNationality() async {
+    final natId = widget.author.nationalityId;
+    if (natId == null || natId.isEmpty) return;
+    try {
+      final res =
+          await SupabaseInit.client
+              .from('nationalities')
+              .select('name, flag_url')
+              .eq('id', natId)
+              .maybeSingle();
+      if (!mounted) return;
+      if (res != null) {
+        final map = Map<String, dynamic>.from(res as Map);
+        setState(() {
+          _nationalityName = map['name'] as String?;
+          _nationalityFlagUrl = map['flag_url'] as String?;
+        });
+      }
+    } catch (_) {
+      // Ignorar errores de carga de nacionalidad
     }
   }
 
@@ -124,6 +151,9 @@ class _AuthorDetailPageState extends State<AuthorDetailPage> {
                         color: Colors.black87,
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    // Badge de nacionalidad (bandera + nombre)
+                    _buildNationalityBadge(),
                     const SizedBox(height: 8),
 
                     // Información adicional del autor
@@ -294,6 +324,7 @@ class _AuthorDetailPageState extends State<AuthorDetailPage> {
     );
   }
 
+  // Muestra chips con info adicional
   Widget _buildAuthorInfo() {
     final infoItems = <Widget>[];
 
@@ -301,14 +332,6 @@ class _AuthorDetailPageState extends State<AuthorDetailPage> {
     if (widget.author.birthDate != null) {
       final age = DateTime.now().year - widget.author.birthDate!.year;
       infoItems.add(_buildInfoChip(Icons.cake_outlined, '$age años'));
-    }
-
-    // Nacionalidad - removido ya que no está en el modelo
-    // Si quisiéramos agregarlo, necesitaríamos extender el modelo Author
-
-    // Sitio web
-    if (widget.author.website?.isNotEmpty == true) {
-      infoItems.add(_buildInfoChip(Icons.language_outlined, 'Sitio web'));
     }
 
     // Cantidad de libros
@@ -324,6 +347,44 @@ class _AuthorDetailPageState extends State<AuthorDetailPage> {
     if (infoItems.isEmpty) return const SizedBox.shrink();
 
     return Wrap(spacing: 12, runSpacing: 8, children: infoItems);
+  }
+
+  // Badge compacto de nacionalidad (bandera + nombre)
+  Widget _buildNationalityBadge() {
+    if (widget.author.nationalityId == null) return const SizedBox.shrink();
+    final hasFlag =
+        _nationalityFlagUrl != null && _nationalityFlagUrl!.isNotEmpty;
+    final hasName = _nationalityName != null && _nationalityName!.isNotEmpty;
+    if (!hasFlag && !hasName) return const SizedBox.shrink();
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (hasFlag)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: Image.network(
+              _nationalityFlagUrl!,
+              width: 22,
+              height: 16,
+              fit: BoxFit.cover,
+              filterQuality: FilterQuality.low,
+              errorBuilder:
+                  (_, __, ___) => const SizedBox(width: 22, height: 16),
+            ),
+          ),
+        if (hasFlag && hasName) const SizedBox(width: 8),
+        if (hasName)
+          Text(
+            _nationalityName!,
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+      ],
+    );
   }
 
   Widget _buildInfoChip(IconData icon, String text) {
