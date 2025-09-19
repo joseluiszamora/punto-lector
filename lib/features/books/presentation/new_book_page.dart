@@ -94,11 +94,40 @@ class _NewBookPageState extends State<NewBookPage> {
     return List.generate(len, (_) => chars[r.nextInt(chars.length)]).join();
   }
 
-  Future<void> _pickAndUpload() async {
+  // Nuevo: selector de origen (galería o cámara)
+  Future<void> _chooseSourceAndUpload() async {
+    if (_uploading) return;
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder:
+          (ctx) => SafeArea(
+            child: Wrap(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('Seleccionar de la galería'),
+                  onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_camera_outlined),
+                  title: const Text('Tomar una foto'),
+                  onTap: () => Navigator.pop(ctx, ImageSource.camera),
+                ),
+              ],
+            ),
+          ),
+    );
+    if (source != null && mounted) {
+      await _pickAndUploadFrom(source);
+    }
+  }
+
+  // Extraído: flujo de selección + recorte + subida parametrizado por origen
+  Future<void> _pickAndUploadFrom(ImageSource source) async {
     try {
       final picker = ImagePicker();
       final picked = await picker.pickImage(
-        source: ImageSource.gallery,
+        source: source,
         imageQuality: 85,
         maxWidth: 2000,
       );
@@ -285,7 +314,7 @@ class _NewBookPageState extends State<NewBookPage> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: OutlinedButton.icon(
-                    onPressed: _uploading ? null : _pickAndUpload,
+                    onPressed: _uploading ? null : _chooseSourceAndUpload,
                     icon:
                         _uploading
                             ? const SizedBox(

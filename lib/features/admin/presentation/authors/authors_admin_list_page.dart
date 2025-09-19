@@ -420,11 +420,40 @@ class _AuthorDialogState extends State<_AuthorDialog> {
     return List.generate(len, (_) => chars[r.nextInt(chars.length)]).join();
   }
 
-  Future<void> _pickAndUpload() async {
+  // Nuevo: elegir origen (galería o cámara) y luego subir
+  Future<void> _chooseSourceAndUpload() async {
+    if (_uploading) return;
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder:
+          (ctx) => SafeArea(
+            child: Wrap(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('Seleccionar de la galería'),
+                  onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_camera_outlined),
+                  title: const Text('Tomar una foto'),
+                  onTap: () => Navigator.pop(ctx, ImageSource.camera),
+                ),
+              ],
+            ),
+          ),
+    );
+    if (source != null && mounted) {
+      await _pickAndUploadFrom(source);
+    }
+  }
+
+  // Reemplaza al anterior _pickAndUpload, parametrizado por origen
+  Future<void> _pickAndUploadFrom(ImageSource source) async {
     try {
       final picker = ImagePicker();
       final picked = await picker.pickImage(
-        source: ImageSource.gallery,
+        source: source,
         imageQuality: 85,
         maxWidth: 2000,
       );
@@ -651,8 +680,17 @@ class _AuthorDialogState extends State<_AuthorDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         OutlinedButton.icon(
-                          onPressed: _uploading ? null : _pickAndUpload,
-                          icon: const Icon(Icons.photo_library_outlined),
+                          onPressed: _uploading ? null : _chooseSourceAndUpload,
+                          icon:
+                              _uploading
+                                  ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                  : const Icon(Icons.cloud_upload_outlined),
                           label: Text(
                             _uploading ? 'Subiendo...' : 'Subir foto',
                           ),
