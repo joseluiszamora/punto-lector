@@ -199,3 +199,14 @@ Ejemplo de `filters`:
 
 - Tabla authors: eliminado campo `website`, agregado `nationality_id` (FK a `public.nationalities`) con `on delete set null` e índice `idx_authors_nationality`.
 - Seed actualizado para no usar `website` y para asignar nacionalidades a autores ejemplo (CO, AR) si existen.
+
+## Ejemplo para insertar registros en Autores y Books
+
+```
+INSERT INTO "public"."authors"
+("name", "bio", "birth_date", "death_date", "nationality_id")
+VALUES
+('Gabriel García Márquez', 'Autor colombiano', null, null, null);
+
+INSERT INTO "public"."books" ("id", "title", "summary", "review", "published_at", "isbn", "language") VALUES ('225de4cf-8fdf-4266-a8aa-0262b0b141ec', 'Cien años de soledad', 'Saga de la familia Buendía en Macondo.', null, '1967-05-30', '9780307474728', 'es');
+```
