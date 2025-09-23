@@ -5,6 +5,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # Build output
+.next/
+out/
 dist/
 build/
 
@@ -26,3 +28,6 @@ Thumbs.db
 # Logs
 logs/
 *.log
+
+# Prisma
+prisma/generated/

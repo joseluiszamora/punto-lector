@@ -1,15 +1,15 @@
 # Punto Lector Backend
 
-Backend API para la aplicación Punto Lector desarrollado con Node.js, TypeScript, Express y Prisma.
+Backend API para la aplicación Punto Lector migrado a Next.js (App Router) con Prisma.
 
 ## Características
 
-- ✅ Express.js con TypeScript
-- ✅ Prisma ORM para base de datos
-- ✅ Conexión a Supabase PostgreSQL
-- ✅ CORS habilitado
-- ✅ Variables de entorno
-- ✅ Scripts de desarrollo y producción
+- ✅ Next.js 14 (App Router) en modo Node.js runtime para APIs
+- ✅ Prisma ORM para PostgreSQL (Supabase)
+- ✅ Rutas API en `app/api/*`
+- ✅ Healthcheck en `app/health`
+- ✅ CORS básico en handlers
+- ✅ Variables de entorno con `.env.local`
 
 ## Configuración
 
@@ -23,15 +23,15 @@ npm install
 ### 2. Configurar variables de entorno
 
 ```bash
-cp .env.example .env
+cp .env.local.example .env.local
 ```
 
-Edita el archivo `.env` con tus credenciales de Supabase:
+Edita `.env.local` con tus credenciales de base de datos (Supabase):
 
 ```env
 DATABASE_URL="postgresql://postgres:tu-password@db.tu-proyecto.supabase.co:5432/postgres"
-PORT=3001
-NODE_ENV=development
+DIRECT_URL="postgresql://postgres:tu-password@db.tu-proyecto.supabase.co:5432/postgres"
+CORS_ORIGIN=*
 ```
 
 ### 3. Generar cliente Prisma
@@ -49,22 +49,19 @@ npm run db:seed
 ## Scripts disponibles
 
 ```bash
-# Desarrollo con hot reload
+# Desarrollo (puerto 3001)
 npm run dev
 
-# Compilar a JavaScript
+# Build de producción
 npm run build
 
-# Producción
+# Start producción
 npm start
 
-# Generar cliente Prisma
+# Prisma
 npm run db:generate
-
-# Abrir Prisma Studio
+npm run db:migrate
 npm run db:studio
-
-# Ejecutar seed
 npm run db:seed
 ```
 
@@ -93,21 +90,33 @@ npm run db:seed
 
 ```
 backend/
-├── src/
-│   ├── index.ts        # Servidor principal
-│   └── seed.ts         # Datos de prueba
+├── app/
+│   ├── layout.tsx
+│   ├── page.tsx
+│   ├── health/
+│   │   └── route.ts
+│   └── api/
+│       ├── books/route.ts
+│       ├── stores/route.ts
+│       └── listings/route.ts
+├── lib/
+│   ├── prisma.ts
+│   └── cors.ts
 ├── prisma/
-│   └── schema.prisma   # Esquema de base de datos
+│   └── schema.prisma
+├── scripts/
+│   └── seed.ts
+├── next.config.js
 ├── package.json
 ├── tsconfig.json
-└── .env
+└── .env.local
 ```
 
 ## Desarrollo
 
-El servidor se ejecuta por defecto en http://localhost:3001
+Servidor Next.js por defecto en http://localhost:3001
 
-Para verificar que todo funciona:
+Para verificar:
 
 1. `npm run dev`
 2. Visita http://localhost:3001/health
